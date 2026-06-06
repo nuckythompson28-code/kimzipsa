@@ -368,6 +368,9 @@ function taskCard(t, s) {
   const done = el(`<button class="btn ok sm">✅ 완료</button>`);
   done.addEventListener('click', () => openCompleteModal(t.id));
   card.appendChild(done);
+  const edit = el(`<button class="btn sm" title="수정·삭제" style="padding:6px 9px">✏️</button>`);
+  edit.addEventListener('click', () => openTaskModal(t.id));
+  card.appendChild(edit);
   return card;
 }
 
