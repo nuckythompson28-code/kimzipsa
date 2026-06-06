@@ -55,7 +55,9 @@
   .cal-dnum { font-size:12px; font-weight:800; }
   .cal-dnum.sun { color:var(--danger); } .cal-dnum.sat { color:var(--blue); }
   .cal-ev { font-size:10px; line-height:1.4; color:#fff; border-radius:4px; padding:0 4px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .cal-more { font-size:10px; color:var(--muted); margin-top:1px; padding-left:2px; }
+  .cal-more { font-size:10px; color:var(--muted); }
+  .cal-dots { display:flex; gap:3px; flex-wrap:wrap; margin-top:4px; justify-content:center; align-items:center; }
+  .cal-dot2 { width:7px; height:7px; border-radius:50%; }
 
   .list-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px;
     margin-bottom: 8px; box-shadow: var(--shadow); cursor:pointer; display:flex; align-items:center; gap:10px; }
@@ -192,6 +194,7 @@ function todayDate(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
 function todayISO(){ return toISO(todayDate()); }
 function parseDate(s){ if(!s) return null; const [y,m,d]=s.split('-').map(Number); const dt=new Date(y,m-1,d); dt.setHours(0,0,0,0); return isNaN(dt)?null:dt; }
 const WD=['일','월','화','수','목','금','토'];
+const WDH=['월','화','수','목','금','토','일']; // 달력 헤더(월요일 시작)
 function fmtKDate(s){ const d=parseDate(s); if(!d) return ''; return `${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`; }
 function fmtKFull(s){ const d=parseDate(s); if(!d) return ''; return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`; }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1800); }
@@ -239,10 +242,10 @@ function renderCal() {
   $('#nextM', head).addEventListener('click', ()=>moveMonth(1));
 
   const grid = el(`<div class="cal-grid"></div>`);
-  WD.forEach((w,i)=> grid.appendChild(el(`<div class="cal-wd ${i===0?'sun':''} ${i===6?'sat':''}">${w}</div>`)));
+  WDH.forEach((w,i)=> grid.appendChild(el(`<div class="cal-wd ${i===6?'sun':''} ${i===5?'sat':''}">${w}</div>`)));
 
   const first = new Date(viewY, viewM, 1);
-  const startWd = first.getDay();
+  const startWd = (first.getDay()+6)%7; // 월요일 시작
   const daysInMonth = new Date(viewY, viewM+1, 0).getDate();
   const total = Math.ceil((startWd + daysInMonth)/7)*7;
   const todayStr = todayISO();
@@ -255,8 +258,12 @@ function renderCal() {
     const cell = el(`<div class="cal-cell ${inMonth?'':'other'} ${iso===todayStr?'today':''}"></div>`);
     cell.appendChild(el(`<div class="cal-dnum ${wd===0?'sun':''} ${wd===6?'sat':''}">${cellDate.getDate()}</div>`));
     const evs = eventsOn(iso);
-    evs.slice(0,2).forEach(e => cell.appendChild(el(`<div class="cal-ev" style="background:${catOf(e.cat).color}">${e.time?esc(e.time)+' ':''}${esc(e.title)}</div>`)));
-    if (evs.length>2) cell.appendChild(el(`<div class="cal-more">+${evs.length-2}</div>`));
+    if (evs.length) {
+      const dots = el(`<div class="cal-dots"></div>`);
+      evs.slice(0,4).forEach(e => dots.appendChild(el(`<span class="cal-dot2" style="background:${catOf(e.cat).color}" title="${esc(e.title)}"></span>`)));
+      if (evs.length>4) dots.appendChild(el(`<span class="cal-more">+${evs.length-4}</span>`));
+      cell.appendChild(dots);
+    }
     cell.addEventListener('click', ()=>openDay(iso));
     grid.appendChild(cell);
   }
@@ -266,6 +273,25 @@ function renderCal() {
   const leg = el(`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:center"></div>`);
   CATS.forEach(c => leg.appendChild(el(`<span style="font-size:11px;color:var(--muted)"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c.color};margin-right:3px"></span>${c.name}</span>`)));
   root.appendChild(leg);
+
+  // 이번 달 일정 전체 목록 (날짜칸이 좁아 제목이 잘리는 문제 보완)
+  const ms = `${viewY}-${pad(viewM+1)}-01`;
+  const me = `${viewY}-${pad(viewM+1)}-${pad(daysInMonth)}`;
+  const monthEvents = Store.data.events.filter(e => e.date<=me && (e.end||e.date)>=ms)
+    .sort((a,b)=> a.date.localeCompare(b.date) || (a.time||'99').localeCompare(b.time||'99'));
+  root.appendChild(el(`<div class="date-head" style="margin-top:18px">📋 ${viewM+1}월 일정 (${monthEvents.length})</div>`));
+  if (!monthEvents.length) root.appendChild(el(`<div class="empty" style="padding:18px">이 달 일정이 없어요 😴</div>`));
+  monthEvents.forEach(e => {
+    const c = catOf(e.cat); const rl = rangeLabel(e); const sd = parseDate(e.date);
+    const dlabel = rl ? rl : `${sd.getDate()}일(${WD[sd.getDay()]})`;
+    const card = el(`<div class="list-card">
+      <span class="ev-dot" style="background:${c.color}"></span>
+      <div style="flex:1"><div class="nm"><span class="muted" style="font-weight:700">${dlabel}</span> ${e.time?`<span class="muted">${esc(e.time)}</span> `:''}${esc(e.title)}</div>
+        <div class="sub"><span class="cat-pill" style="background:${c.color}">${esc(c.name)}</span>${e.memo?' '+esc(e.memo):''}</div></div>
+    </div>`);
+    card.addEventListener('click', ()=>openEventModal(e.id, e.date));
+    root.appendChild(card);
+  });
 }
 
 /* ===================== 하루 보기 ===================== */
