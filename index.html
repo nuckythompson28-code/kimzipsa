@@ -90,6 +90,7 @@
         <a class="card" href="info.html"><span class="emoji">🏠</span><span class="t">우리집 정보</span><span class="b">와이파이·계좌·사용법</span></a>
         <a class="card" href="recipe.html"><span class="emoji">🍳</span><span class="t">레시피</span><span class="b">우리집 요리 모음</span></a>
         <a class="card" href="anniversary.html"><span class="emoji">🎂</span><span class="t">기념일</span><span class="b">생일·기념일 D-day</span><span class="badge" id="b-anniv" style="display:none"></span></a>
+        <a class="card" href="recurring.html"><span class="emoji">💳</span><span class="t">정기지출</span><span class="b">구독·고정비 관리</span><span class="badge" id="b-recur" style="display:none"></span></a>
       </div>
       <div class="code-line">😺 우리 가족 코드: <b id="curCode"></b> · <a onclick="changeCode()">변경</a></div>
     </div>
@@ -133,7 +134,7 @@
   function addInterval(iso,n,unit){const d=parseD(iso);if(unit==='day')d.setDate(d.getDate()+n);else if(unit==='week')d.setDate(d.getDate()+n*7);else if(unit==='month'){const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,dim));}else if(unit==='year')d.setFullYear(d.getFullYear()+n);return toISO(d);}
 
   async function loadDash(code){
-    const paths=['chores','schedule','shopping','storage','vehicle','fines','anniversary'];
+    const paths=['chores','schedule','shopping','storage','vehicle','fines','anniversary','recurring'];
     let data={};
     try {
       const snaps=await Promise.all(paths.map(p=>db.ref(p+'/'+code).once('value')));
@@ -196,11 +197,21 @@
       return du<=30?{name:a.name,du,e:a.type==='결혼기념일'?'💍':(a.type==='기타'?'🎉':'🎂')}:null;
     }).filter(Boolean).sort((x,y)=>x.du-y.du);
     html+=sec('🎂','다가오는 기념일','anniversary.html',anniv,a=>`<div class="ds-item">${a.e} ${escape2(a.name)}${pill(a.du===0?'오늘 🎉':'D-'+a.du,a.du===0)}</div>`,'30일 내 기념일 없음');
+    // 정기지출: 월 고정비 + 7일 내 결제 예정
+    const recurItems=(d.recurring.items||[]).filter(i=>i.active!==false);
+    const recurMonthly=recurItems.reduce((s,i)=>s+(i.cycle==='year'?(+i.amount||0)/12:(+i.amount||0)),0);
+    const recurSoon=recurItems.map(i=>{ let nb;
+      if(i.cycle==='year'){ const a2=String(i.mmdd||'01-01').split('-').map(Number); nb=new Date(t.getFullYear(),a2[0]-1,a2[1]); nb.setHours(0,0,0,0); if(nb<t) nb=new Date(t.getFullYear()+1,a2[0]-1,a2[1]); }
+      else { const dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate(); nb=new Date(t.getFullYear(),t.getMonth(),Math.min(i.day||1,dim)); nb.setHours(0,0,0,0); if(nb<t){ const m=t.getMonth()+1; const dim2=new Date(t.getFullYear(),m+1,0).getDate(); nb=new Date(t.getFullYear(),m,Math.min(i.day||1,dim2)); } }
+      const du=Math.round((nb-t)/86400000); return du<=7?{name:i.name,du,amount:+i.amount||0}:null;
+    }).filter(Boolean).sort((a,b)=>a.du-b.du);
+    html+=`<div class="ds"><div class="h">💳 정기지출<a href="recurring.html">열기 ›</a></div>`+
+      (recurItems.length?`<div class="ds-item"><b>월 평균 고정비</b><b style="margin-left:auto;color:var(--primary)">${Math.round(recurMonthly).toLocaleString('ko-KR')}원</b></div>`+recurSoon.slice(0,3).map(r=>`<div class="ds-item">${escape2(r.name)}${pill('D-'+r.du+' · '+r.amount.toLocaleString('ko-KR')+'원',r.du<=1)}</div>`).join(''):`<div class="none">등록된 정기지출 없음</div>`)+`</div>`;
     dash.innerHTML=html;
 
     // 카드 뱃지
     badge('b-chore',chores.length); badge('b-sch',events.length); badge('b-shop',shopTodo.length);
-    badge('b-stor',expSoon.length); badge('b-veh',vdues.length); badge('b-fine',fineLogs.length); badge('b-anniv',anniv.length);
+    badge('b-stor',expSoon.length); badge('b-veh',vdues.length); badge('b-fine',fineLogs.length); badge('b-anniv',anniv.length); badge('b-recur',recurSoon.length);
   }
   function badge(id,n){ const e=$('#'+id); if(n>0){e.textContent=n;e.style.display='';}else e.style.display='none'; }
   function escape2(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
