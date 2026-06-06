@@ -90,6 +90,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8",
@@ -178,9 +179,11 @@
     html+=`<div class="ds"><div class="h">💸 이번 달 벌금<a href="fines.html">열기 ›</a></div>`+
       (fineTotal?`<div class="ds-item"><b>합계</b><b style="margin-left:auto;color:var(--danger)">${fineTotal.toLocaleString('ko-KR')}원</b></div>`:`<div class="none">이번 달 벌금 없음 😇</div>`)+`</div>`;
     // 다가오는 기념일 (30일 내)
+    const l2s=(y,lm,ld)=>{ try{ if(typeof Lunar==='undefined')return null; const s=Lunar.fromYmd(y,lm,ld).getSolar(); const dt=new Date(s.getYear(),s.getMonth()-1,s.getDay()); dt.setHours(0,0,0,0); return dt; }catch(e){return null;} };
     const anniv=(d.anniversary.items||[]).map(a=>{ const ad=parseD(a.date); if(!ad) return null;
-      let nb=new Date(t.getFullYear(),ad.getMonth(),ad.getDate()); nb.setHours(0,0,0,0);
-      if(nb<t) nb=new Date(t.getFullYear()+1,ad.getMonth(),ad.getDate());
+      let nb=null;
+      if(a.lunar && typeof Lunar!=='undefined'){ for(let y=t.getFullYear();y<=t.getFullYear()+2;y++){ const sd=l2s(y,ad.getMonth()+1,ad.getDate()); if(sd&&sd>=t){nb=sd;break;} } }
+      if(!nb){ nb=new Date(t.getFullYear(),ad.getMonth(),ad.getDate()); nb.setHours(0,0,0,0); if(nb<t) nb=new Date(t.getFullYear()+1,ad.getMonth(),ad.getDate()); }
       const du=Math.round((nb-t)/86400000);
       return du<=30?{name:a.name,du,e:a.type==='결혼기념일'?'💍':(a.type==='기타'?'🎉':'🎂')}:null;
     }).filter(Boolean).sort((x,y)=>x.du-y.du);

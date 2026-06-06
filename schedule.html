@@ -139,6 +139,7 @@
 <!-- Firebase 연결 -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8",
@@ -199,7 +200,13 @@ function fmtKFull(s){ const d=parseDate(s); if(!d) return ''; return `${d.getFul
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1800); }
 let annivItems = [];
 function annivEmoji(t){ return t==='결혼기념일'?'💍':(t==='기타'?'🎉':'🎂'); }
-function annivFor(iso){ const mmdd=iso.slice(5); return annivItems.filter(a=>a.date && a.date.slice(5)===mmdd).map(a=>({ id:'anv_'+a.id, date:iso, end:'', time:'', title:`${annivEmoji(a.type)} ${a.name}${a.type==='생일'?' 생일':' '+a.type}`, cat:'기념', isAnniv:true })); }
+function lunarToSolarISO(year, lm, ld){ try{ if(typeof Lunar==='undefined') return null; const s=Lunar.fromYmd(year, lm, ld).getSolar(); return `${s.getYear()}-${pad(s.getMonth())}-${pad(s.getDay())}`; }catch(e){ return null; } }
+function annivTitle(a){ return `${annivEmoji(a.type)} ${a.name}${a.type==='생일'?' 생일':' '+a.type}${a.lunar?' 🌙':''}`; }
+function annivOccIso(a, year){ const d=parseDate(a.date); if(!d) return null;
+  if(a.lunar) return lunarToSolarISO(year, d.getMonth()+1, d.getDate()) || `${year}-${a.date.slice(5)}`;
+  return `${year}-${a.date.slice(5)}`; }
+function annivFor(iso){ const y=Number(iso.slice(0,4)); return annivItems.filter(a=>a.date)
+  .map(a=> annivOccIso(a,y)===iso ? ({ id:'anv_'+a.id, date:iso, end:'', time:'', title:annivTitle(a), cat:'기념', isAnniv:true }) : null).filter(Boolean); }
 function eventsOn(iso){ return Store.data.events.filter(e=> e.date<=iso && (e.end||e.date)>=iso ).concat(annivFor(iso)).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99')); }
 function rangeLabel(e){ if(e.end && e.end!==e.date){ const a=parseDate(e.date), b=parseDate(e.end); return `${a.getMonth()+1}/${a.getDate()}~${b.getMonth()+1}/${b.getDate()}`; } return ''; }
 
@@ -280,8 +287,9 @@ function renderCal() {
   const ms = `${viewY}-${pad(viewM+1)}-01`;
   const me = `${viewY}-${pad(viewM+1)}-${pad(daysInMonth)}`;
   const monthEvents = Store.data.events.filter(e => e.date<=me && (e.end||e.date)>=ms);
-  const annivMonth = annivItems.filter(a=>a.date && Number(a.date.slice(5,7))===viewM+1)
-    .map(a=>({ id:'anv_'+a.id, date:`${viewY}-${a.date.slice(5)}`, title:`${annivEmoji(a.type)} ${a.name}${a.type==='생일'?' 생일':' '+a.type}`, cat:'기념', isAnniv:true }));
+  const annivMonth = annivItems.filter(a=>a.date).map(a=>{ const occ=annivOccIso(a, viewY);
+    if(!occ || Number(occ.slice(5,7))!==viewM+1) return null;
+    return { id:'anv_'+a.id, date:occ, title:annivTitle(a), cat:'기념', isAnniv:true }; }).filter(Boolean);
   const allMonth = monthEvents.concat(annivMonth)
     .sort((a,b)=> a.date.localeCompare(b.date) || (a.time||'99').localeCompare(b.time||'99'));
   root.appendChild(el(`<div class="date-head" style="margin-top:18px">📋 ${viewM+1}월 일정 (${allMonth.length})</div>`));

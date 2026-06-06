@@ -80,6 +80,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
 <script>
   const firebaseConfig = { apiKey:"AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8", authDomain:"kimzipsa-bfe26.firebaseapp.com",
     databaseURL:"https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"kimzipsa-bfe26",
@@ -110,11 +111,13 @@ function todayDate(){const d=new Date();d.setHours(0,0,0,0);return d;}
 function parseDate(s){if(!s)return null;const[y,m,d]=String(s).split('-').map(Number);const dt=new Date(y,(m||1)-1,d||1);dt.setHours(0,0,0,0);return isNaN(dt)?null:dt;}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),1700);}
 
-function nextOccur(dateStr){ const d=parseDate(dateStr); if(!d) return null; const t=todayDate();
+function lunarToSolar(year, lm, ld){ try{ if(typeof Lunar==='undefined') return null; const s=Lunar.fromYmd(year, lm, ld).getSolar(); const dt=new Date(s.getYear(), s.getMonth()-1, s.getDay()); dt.setHours(0,0,0,0); return dt; }catch(e){ return null; } }
+function nextOccur(it){ const d=parseDate(it.date); if(!d) return null; const t=todayDate();
+  if(it.lunar && typeof Lunar!=='undefined'){ for(let y=t.getFullYear(); y<=t.getFullYear()+2; y++){ const sd=lunarToSolar(y, d.getMonth()+1, d.getDate()); if(sd && sd>=t) return sd; } }
   let nb=new Date(t.getFullYear(), d.getMonth(), d.getDate()); nb.setHours(0,0,0,0);
   if(nb<t) nb=new Date(t.getFullYear()+1, d.getMonth(), d.getDate()); return nb; }
 function dUntil(dt){ if(!dt) return null; return Math.round((dt-todayDate())/86400000); }
-function statusOf(it){ const nb=nextOccur(it.date); if(!nb) return {cls:'',dd:'none',label:'날짜 미설정',sort:99999,nb:null};
+function statusOf(it){ const nb=nextOccur(it); if(!nb) return {cls:'',dd:'none',label:'날짜 미설정',sort:99999,nb:null};
   const du=dUntil(nb); if(du===0) return {cls:'today',dd:'today',label:'오늘 🎉',sort:-1,nb};
   if(du<=14) return {cls:'soon',dd:'soon',label:`D-${du}`,sort:du,nb};
   return {cls:'',dd:'',label:`D-${du}`,sort:du,nb}; }
@@ -139,7 +142,10 @@ function renderList(){
   const arr=Store.data.items.map(it=>({it,s:statusOf(it)})).sort((a,b)=>a.s.sort-b.s.sort);
   arr.forEach(({it,s})=>{
     const nb=s.nb; const age=ageAt(it,nb);
-    const dateLabel = it.date ? (parseDate(it.date) ? `${parseDate(it.date).getMonth()+1}월 ${parseDate(it.date).getDate()}일${it.lunar?' 🌙음력':''}` : '') : '날짜를 입력하세요';
+    const sd0=parseDate(it.date);
+    const dateLabel = !it.date ? '날짜를 입력하세요'
+      : it.lunar ? `🌙 음력 ${sd0.getMonth()+1}월 ${sd0.getDate()}일${nb?` · 양력 ${nb.getMonth()+1}/${nb.getDate()}`:''}`
+      : `${sd0.getMonth()+1}월 ${sd0.getDate()}일`;
     const card=el(`<div class="a-card ${s.cls}">
       <span class="ic">${typeE(it.type)}</span>
       <div style="flex:1"><div class="nm">${esc(it.name)} <span class="muted" style="font-size:12px;font-weight:600">${esc(it.type)}</span></div>
@@ -159,7 +165,7 @@ function openModal(id=null){
       <div class="field"><label>종류</label><select id="f_type">${TYPES.map(t=>`<option value="${t.key}" ${t.key===it.type?'selected':''}>${t.e} ${t.key}</option>`).join('')}</select></div>
       <div class="field"><label>날짜</label><input id="f_date" type="date" value="${esc(it.date)}" /></div>
     </div>
-    <div class="field"><label class="chk"><input type="checkbox" id="f_lunar" ${it.lunar?'checked':''}> 🌙 음력 (D-day는 입력한 날짜 기준으로 계산돼요)</label></div>
+    <div class="field"><label class="chk"><input type="checkbox" id="f_lunar" ${it.lunar?'checked':''}> 🌙 음력 생일 (위 날짜의 월·일을 음력으로 보고 양력으로 자동 변환)</label></div>
     <div class="field"><label>메모 (선택)</label><input id="f_memo" value="${esc(it.memo)}" placeholder="예: 선물 아이디어" /></div>
     <div class="actions">${ed?`<button class="btn danger" onclick="del('${id}')">🗑️</button>`:''}
       <button class="btn" onclick="closeModal()">취소</button>
@@ -181,7 +187,7 @@ function renderSettings(){
   const imp=el(`<label class="btn" style="display:inline-block">⬆️ 불러오기<input type="file" accept="application/json" style="display:none"></label>`);
   imp.querySelector('input').addEventListener('change',importBackup);
   root.append(exp,imp);
-  root.appendChild(el(`<div class="muted" style="margin-top:18px;font-size:12.5px">🌙 음력 생일은 입력한 날짜 기준으로 D-day를 계산해요. 정확한 음력 자동 변환이 필요하면 알려주세요!</div>`));
+  root.appendChild(el(`<div class="muted" style="margin-top:18px;font-size:12.5px">🌙 음력 생일은 양력으로 자동 변환해서 D-day·달력에 표시돼요. (한국 음력 기준, 드물게 하루 오차 가능)</div>`));
   root.appendChild(el(`<div class="muted" style="margin-top:14px;font-size:12.5px">기념일 ${Store.data.items.length}개 · 코드 ${esc(Store.code)}</div>`));
 }
 function exportBackup(){ const blob=new Blob([JSON.stringify(Store.data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob);
