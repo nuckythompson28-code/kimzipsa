@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🐱 김집사 — 우리집 살림 매니저</title>
+<style>
+  :root {
+    --bg: #f5f4fb; --card: #fff; --line: #e7e4f0; --text: #2a2440; --muted: #8a85a3;
+    --primary: #7c5cff; --primary-dark: #6344e0; --danger: #e0483b; --warn: #e8920c; --ok: #1f9d57;
+    --pink: #ff7eb6; --shadow: 0 1px 3px rgba(40,30,80,.08), 0 4px 16px rgba(40,30,80,.06);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; font-size: 15px; }
+
+  header { position: sticky; top: 0; z-index: 50; background: var(--card); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 9px; padding: 11px 16px; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 800; letter-spacing: -.3px; }
+  header .code-chip { margin-left: auto; font-size: 12px; color: var(--muted); background: var(--bg);
+    border: 1px solid var(--line); padding: 4px 9px; border-radius: 999px; cursor: pointer; }
+
+  nav.tabs { position: sticky; top: 54px; z-index: 40; display: flex; background: var(--card); border-bottom: 1px solid var(--line); }
+  nav.tabs button { flex: 1; border: none; background: none; padding: 11px 2px; font-size: 13.5px;
+    color: var(--muted); border-bottom: 2.5px solid transparent; font-weight: 700; }
+  nav.tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  main { padding: 16px; max-width: 760px; margin: 0 auto; padding-bottom: 92px; }
+
+  .muted { color: var(--muted); }
+  .spacer { flex: 1; }
+  .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 9px 14px;
+    border-radius: 10px; font-size: 14px; font-weight: 700; }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.primary:hover { background: var(--primary-dark); }
+  .btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .btn.danger { color: var(--danger); border-color: #f1c4bf; }
+  .btn.sm { padding: 6px 11px; font-size: 13px; }
+  .empty { text-align: center; color: var(--muted); padding: 44px 10px; font-size: 14.5px; }
+  .chip-cat { font-size: 11px; background: var(--bg); border: 1px solid var(--line); padding: 1px 8px; border-radius: 999px; color: var(--muted); }
+
+  .sec-title { font-size: 13px; font-weight: 800; color: var(--muted); margin: 18px 0 9px; }
+
+  .task-card { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--line);
+    border-radius: 13px; padding: 12px 14px; margin-bottom: 9px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 11px; }
+  .task-card.over { border-left-color: var(--danger); }
+  .task-card.soon { border-left-color: var(--warn); }
+  .task-card.todo { border-left-color: var(--pink); }
+  .task-card .info { flex: 1; cursor: pointer; min-width: 0; }
+  .task-card .nm { font-weight: 800; }
+  .task-card .meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .status-pill { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill-over { background: #fbe3e0; color: var(--danger); }
+  .pill-soon { background: #fdeccb; color: var(--warn); }
+  .pill-ok { background: #e3f3ea; color: var(--ok); }
+  .pill-todo { background: #ffe6f1; color: var(--pink); }
+
+  .list-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+    margin-bottom: 8px; box-shadow: var(--shadow); }
+  .list-card .top { display: flex; align-items: center; gap: 8px; }
+  .list-card .top .nm { font-weight: 800; }
+  .list-card .sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+  .fab { position: fixed; right: 18px; bottom: 18px; z-index: 60; background: var(--primary); color: #fff;
+    border: none; width: 58px; height: 58px; border-radius: 50%; font-size: 30px; line-height: 1; box-shadow: 0 6px 18px rgba(124,92,255,.45); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(30,22,60,.45); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+  @media (min-width: 600px) { .modal-bg { align-items: center; } }
+  .modal { background: var(--card); width: 100%; max-width: 480px; border-radius: 18px 18px 0 0; padding: 18px; max-height: 92vh; overflow-y: auto; }
+  @media (min-width: 600px) { .modal { border-radius: 18px; } }
+  .modal h2 { margin: 0 0 14px; font-size: 17px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 5px; font-weight: 700; }
+  .field input, .field select, .field textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  .field textarea { resize: vertical; min-height: 56px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .modal .actions { display: flex; gap: 8px; margin-top: 8px; }
+  .modal .actions .btn { flex: 1; }
+
+  .wd-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+  .wd-opt { display: flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 9px; padding: 7px 11px; font-size: 14px; cursor: pointer; font-weight: 600; }
+  .wd-opt input { width: auto; }
+  .wd-opt.on { background: #efeaff; border-color: var(--primary); color: var(--primary); }
+
+  .member-pick { display: flex; gap: 8px; flex-wrap: wrap; }
+  .member-pick button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 9px 15px; font-size: 14px; font-weight: 700; }
+  .member-pick button.sel { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .period-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .period-tabs button { flex: 1; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 9px; font-weight: 700; color: var(--muted); }
+  .period-tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 15px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .stat-card h3 { margin: 0 0 12px; font-size: 14.5px; }
+  .bar-row { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+  .bar-row .bn { width: 96px; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; background: var(--bg); border-radius: 999px; height: 24px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, #a98bff, #7c5cff); border-radius: 999px;
+    display: flex; align-items: center; justify-content: flex-end; padding-right: 9px; color: #fff; font-size: 12px; font-weight: 800; min-width: 26px; }
+  .bar-fill.cat { background: linear-gradient(90deg, #ffa8cf, #ff7eb6); }
+  .big-num { font-size: 30px; font-weight: 800; color: var(--primary); }
+
+  .start-wrap { max-width: 420px; margin: 7vh auto; padding: 24px; text-align: center; }
+  .start-wrap .logo { font-size: 56px; }
+  .start-wrap h1 { font-size: 24px; margin: 6px 0 2px; font-weight: 800; }
+  .start-wrap .tag { color: var(--primary); font-weight: 700; margin: 0 0 6px; }
+  .start-wrap p { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+  .start-wrap input { width: 100%; padding: 13px; border: 1px solid var(--line); border-radius: 12px; text-align: center; font-size: 16px; }
+  .start-wrap .btn { width: 100%; margin-top: 10px; }
+  .toast { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); background: #2a2440; color: #fff;
+    padding: 11px 20px; border-radius: 999px; font-size: 14px; z-index: 200; opacity: 0; transition: opacity .2s; pointer-events: none; font-weight: 600; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="startScreen" class="start-wrap">
+  <div class="logo">🐱</div>
+  <h1>김집사</h1>
+  <p class="tag">🏠 우리집 살림 매니저</p>
+  <p>가족 공유코드를 입력하세요 😺<br>같은 코드를 쓰는 가족끼리 함께 관리해요</p>
+  <input id="codeInput" placeholder="예: kim-house-7392" autocomplete="off" />
+  <button class="btn primary" onclick="enterSpace()">🚪 입장하기</button>
+  <button class="btn" onclick="suggestCode()">✨ 새 코드 만들기</button>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <span style="font-size:22px">🐱</span>
+    <h1>김집사</h1>
+    <span class="code-chip" id="codeChip" onclick="changeCode()" title="코드 변경"></span>
+  </header>
+  <nav class="tabs">
+    <button data-tab="home" class="active" onclick="switchTab('home')">🧹 할 일</button>
+    <button data-tab="stats" onclick="switchTab('stats')">📊 통계</button>
+    <button data-tab="history" onclick="switchTab('history')">📒 이력</button>
+    <button data-tab="settings" onclick="switchTab('settings')">⚙️ 설정</button>
+  </nav>
+  <main>
+    <div id="tab-home"></div>
+    <div id="tab-stats" style="display:none"></div>
+    <div id="tab-history" style="display:none"></div>
+    <div id="tab-settings" style="display:none"></div>
+  </main>
+  <button class="fab" onclick="openTaskModal()" title="작업 추가">＋</button>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+
+<!-- Firebase 연결 (가족 실시간 공유) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8",
+    authDomain: "kimzipsa-bfe26.firebaseapp.com",
+    databaseURL: "https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "kimzipsa-bfe26",
+    storageBucket: "kimzipsa-bfe26.firebasestorage.app",
+    messagingSenderId: "99764860737",
+    appId: "1:99764860737:web:e0450a5ef9e0954a6ad3c0"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+</script>
+
+<script>
+/* ===================== 저장소 (Firebase Realtime Database) ===================== */
+const Store = {
+  code: null,
+  data: { members: ['🧔 남편', '👩 아내'], tasks: [], history: [] },
+  ref: null,
+  _ready: false,
+  init(code, onReady) {
+    this.code = code;
+    this._ready = false;
+    this.ref = db.ref('chores/' + code);
+    this.ref.on('value', snap => {
+      const val = snap.val();
+      if (val && (val.tasks || val.members || val.history)) { this.data = val; }
+      else { this.data = this._seed(); this.ref.set(this.data); }
+      this._normalize();
+      if (!this._ready) { this._ready = true; onReady && onReady(); }
+      else { render(); }
+    }, () => toast('연결 오류 😢 인터넷을 확인해주세요'));
+  },
+  _normalize() {
+    this.data.members ||= ['🧔 남편', '👩 아내'];
+    this.data.tasks ||= [];
+    this.data.history ||= [];
+    this.data.tasks.forEach(t => {
+      if (t.recur && t.recur.type === 'weekday' && t.recur.weekday !== undefined && !t.recur.weekdays) {
+        t.recur.weekdays = [t.recur.weekday]; delete t.recur.weekday;
+      }
+    });
+  },
+  _seed() {
+    return {
+      members: ['🧔 남편', '👩 아내'],
+      tasks: [
+        { id:'t1', name:'에어컨 필터 청소', category:'청소', recur:{type:'interval', n:1, unit:'month'}, lastDone:'2026-05-15', lastBy:'', memo:'' },
+        { id:'t2', name:'화장실 청소', category:'청소', recur:{type:'weekday', weekdays:[6,0]}, lastDone:'', lastBy:'', memo:'주말(토·일) 중에' },
+        { id:'t3', name:'세탁기 통 청소', category:'청소', recur:{type:'interval', n:1, unit:'month'}, lastDone:'', lastBy:'', memo:'' },
+        { id:'t4', name:'정수기 필터 교체', category:'교체', recur:{type:'interval', n:3, unit:'month'}, lastDone:'', lastBy:'', memo:'예시 — 필요없으면 삭제' },
+        { id:'t5', name:'보일러 점검', category:'점검', recur:{type:'interval', n:1, unit:'year'}, lastDone:'', lastBy:'', memo:'예시 — 필요없으면 삭제' },
+      ],
+      history: []
+    };
+  },
+  save() { if (this.ref) this.ref.set(this.data); },
+  uid() { return 't' + Math.random().toString(36).slice(2, 9) + (this.data.tasks.length + this.data.history.length); },
+};
+
+/* ===================== 유틸 ===================== */
+function $(sel, root=document) { return root.querySelector(sel); }
+function $all(sel, root=document) { return [...root.querySelectorAll(sel)]; }
+function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function toISO(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
+function todayDate(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+function parseDate(s){ if(!s) return null; const [y,m,d]=s.split('-').map(Number); const dt=new Date(y,m-1,d); dt.setHours(0,0,0,0); return isNaN(dt)?null:dt; }
+function fmtKDate(s){ const d=parseDate(s); if(!d) return ''; return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}(${WD[d.getDay()]})`; }
+function fmtDateTime(iso){ const d=new Date(iso); if(isNaN(d)) return iso; return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1800); }
+const WD = ['일','월','화','수','목','금','토'];
+const UNIT_KR = { day:'일', week:'주', month:'개월', year:'년' };
+const MEDALS = ['🥇','🥈','🥉'];
+
+function addInterval(iso, n, unit) {
+  const d = parseDate(iso);
+  if (unit === 'day') d.setDate(d.getDate() + n);
+  else if (unit === 'week') d.setDate(d.getDate() + n*7);
+  else if (unit === 'month') { const day=d.getDate(); d.setDate(1); d.setMonth(d.getMonth()+n);
+    const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate(); d.setDate(Math.min(day,dim)); }
+  else if (unit === 'year') d.setFullYear(d.getFullYear()+n);
+  return toISO(d);
+}
+function nextWeekday(baseDate, weekday, strictAfter) {
+  const d = new Date(baseDate); d.setHours(0,0,0,0);
+  let add = (weekday - d.getDay() + 7) % 7;
+  if (add === 0 && strictAfter) add = 7;
+  d.setDate(d.getDate() + add);
+  return d;
+}
+function computeNextDue(task) {
+  const r = task.recur;
+  if (r.type === 'interval') { return task.lastDone ? addInterval(task.lastDone, r.n, r.unit) : null; }
+  if (r.type === 'weekday') {
+    const wds = (r.weekdays && r.weekdays.length) ? r.weekdays : [0];
+    const base = task.lastDone ? parseDate(task.lastDone) : todayDate();
+    const strict = !!task.lastDone;
+    let best = null;
+    for (const wd of wds) { const d = nextWeekday(base, wd, strict); if (!best || d < best) best = d; }
+    return toISO(best);
+  }
+  return null;
+}
+function daysUntil(iso) { const d=parseDate(iso); if(!d) return null; return Math.round((d - todayDate())/86400000); }
+function recurLabel(r) {
+  if (r.type === 'weekday') {
+    const wds = (r.weekdays||[]).slice().sort((a,b)=>a-b);
+    return `매주 ${wds.map(i=>WD[i]).join('·')}요일`;
+  }
+  return `${r.n}${UNIT_KR[r.unit]}마다`;
+}
+function statusOf(task) {
+  const nd = computeNextDue(task);
+  if (nd === null) return { cls:'todo', pill:'pill-todo', label:'🐾 첫 기록', sort:-0.5, nd:null };
+  const du = daysUntil(nd);
+  if (du < 0)  return { cls:'over', pill:'pill-over', label:`🔴 ${-du}일 지남`, sort:du, nd };
+  if (du === 0) return { cls:'soon', pill:'pill-soon', label:'⏰ 오늘!', sort:0, nd };
+  if (du <= 7) return { cls:'soon', pill:'pill-soon', label:`🟠 ${du}일 뒤`, sort:du, nd };
+  return { cls:'', pill:'pill-ok', label:`🟢 ${du}일 뒤`, sort:du, nd };
+}
+
+/* ===================== 시작/코드 ===================== */
+function suggestCode() {
+  const a=['fox','bear','owl','deer','seal','duck','cat','dog'];
+  $('#codeInput').value = `house-${a[Math.floor(Math.random()*a.length)]}-${Math.floor(1000+Math.random()*9000)}`;
+}
+function enterSpace() {
+  const code = $('#codeInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if (!code) { toast('코드를 입력해주세요 🐱'); return; }
+  localStorage.setItem('kimbutler_lastCode', code);
+  $('#startScreen').style.display='none'; $('#app').style.display='';
+  $('#codeChip').textContent = '😺 ' + code;
+  toast('연결 중... 🐱');
+  Store.init(code, () => switchTab('home'));
+}
+function changeCode() {
+  if (confirm('다른 가족 코드로 전환할까요? (현재 데이터는 이 코드에 그대로 보관돼요)')) {
+    localStorage.removeItem('kimbutler_lastCode'); location.reload();
+  }
+}
+
+/* ===================== 탭 ===================== */
+let currentTab = 'home';
+function switchTab(tab) {
+  currentTab = tab;
+  $all('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ['home','stats','history','settings'].forEach(t => $('#tab-'+t).style.display = (t===tab)?'':'none');
+  render();
+}
+function render() {
+  if (currentTab === 'home') renderHome();
+  else if (currentTab === 'stats') renderStats();
+  else if (currentTab === 'history') renderHistory();
+  else if (currentTab === 'settings') renderSettings();
+}
+
+/* ===================== 할 일 (홈) ===================== */
+function renderHome() {
+  const root = $('#tab-home'); root.innerHTML = '';
+  if (Store.data.tasks.length === 0) {
+    root.appendChild(el(`<div class="empty">😺 아직 등록된 집안일이 없어요.<br>오른쪽 아래 ＋ 로 추가해 주세요!</div>`));
+    return;
+  }
+  const enriched = Store.data.tasks.map(t => ({ t, s: statusOf(t) })).sort((a,b) => a.s.sort - b.s.sort);
+  const attention = enriched.filter(e => ['over','soon','todo'].includes(e.s.cls));
+  const later = enriched.filter(e => !['over','soon','todo'].includes(e.s.cls));
+
+  if (attention.length) {
+    root.appendChild(el(`<div class="sec-title">🔔 집사가 챙기는 일 (${attention.length})</div>`));
+    attention.forEach(e => root.appendChild(taskCard(e.t, e.s)));
+  } else {
+    root.appendChild(el(`<div class="empty">😻 지금 급한 집안일은 없어요. 완벽해요!</div>`));
+  }
+  if (later.length) {
+    root.appendChild(el(`<div class="sec-title">🛋️ 여유 있는 일</div>`));
+    later.forEach(e => root.appendChild(taskCard(e.t, e.s)));
+  }
+}
+function taskCard(t, s) {
+  const card = el(`<div class="task-card ${s.cls}"></div>`);
+  const lastInfo = t.lastDone ? `최근 ${fmtKDate(t.lastDone)}${t.lastBy?` · ${esc(t.lastBy)}`:''}` : '기록 없음';
+  const info = el(`<div class="info">
+    <div class="nm">${esc(t.name)} <span class="chip-cat">${esc(t.category||'기타')}</span></div>
+    <div class="meta">🔁 ${esc(recurLabel(t.recur))}${s.nd?` · 📅 다음 ${fmtKDate(s.nd)}`:''}<br>🐾 ${lastInfo}${t.memo?` · 📝 ${esc(t.memo)}`:''}</div>
+  </div>`);
+  info.addEventListener('click', () => openTaskModal(t.id));
+  card.appendChild(info);
+  card.appendChild(el(`<span class="status-pill ${s.pill}">${esc(s.label)}</span>`));
+  const done = el(`<button class="btn ok sm">✅ 완료</button>`);
+  done.addEventListener('click', () => openCompleteModal(t.id));
+  card.appendChild(done);
+  return card;
+}
+
+/* ===================== 완료 처리 (누가 했나) ===================== */
+let _completePerson = '';
+function openCompleteModal(id) {
+  const t = Store.data.tasks.find(x => x.id === id);
+  if (!t) return;
+  _completePerson = t.lastBy || Store.data.members[0] || '';
+  const memberBtns = Store.data.members.map(m =>
+    `<button type="button" class="${m===_completePerson?'sel':''}" onclick="pickPerson(this,'${esc(m).replace(/'/g,"\\'")}')">${esc(m)}</button>`).join('');
+  const m = el(`
+    <div class="modal-bg"><div class="modal">
+      <h2>✅ ${esc(t.name)} 완료!</h2>
+      <div class="field"><label>🐾 누가 했나요?</label>
+        <div class="member-pick" id="memberPick">${memberBtns}
+          <button type="button" onclick="addMemberQuick()">＋ 추가</button></div></div>
+      <div class="field"><label>📅 한 날짜</label><input id="c_date" type="date" value="${toISO(todayDate())}" /></div>
+      <div class="field"><label>📝 메모 (선택)</label><input id="c_memo" placeholder="예: 다음엔 락스 더 필요" /></div>
+      <div class="actions">
+        <button class="btn" onclick="closeModal()">취소</button>
+        <button class="btn ok" onclick="submitComplete('${id}')">🎉 완료 기록</button>
+      </div>
+    </div></div>`);
+  showModal(m);
+}
+function pickPerson(btn, name) {
+  _completePerson = name;
+  $all('#memberPick button').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function addMemberQuick() {
+  const name = prompt('가족 구성원 이름 (이모지 붙여도 좋아요 😺)');
+  if (!name || !name.trim()) return;
+  const n = name.trim();
+  if (!Store.data.members.includes(n)) { Store.data.members.push(n); Store.save(); }
+  _completePerson = n;
+  const pick = $('#memberPick');
+  const addBtn = pick.lastElementChild;
+  const b = el(`<button type="button" class="sel">${esc(n)}</button>`);
+  b.addEventListener('click', () => pickPerson(b, n));
+  $all('#memberPick button').forEach(x => x.classList.remove('sel'));
+  pick.insertBefore(b, addBtn);
+}
+function submitComplete(id) {
+  const t = Store.data.tasks.find(x => x.id === id);
+  if (!t) return;
+  const date = $('#c_date').value || toISO(todayDate());
+  const memo = $('#c_memo').value.trim();
+  t.lastDone = date; t.lastBy = _completePerson;
+  Store.data.history.unshift({ id: Store.uid(), at: new Date().toISOString(), taskName: t.name,
+    category: t.category||'기타', doneDate: date, person: _completePerson, memo });
+  Store.save();
+  closeModal();
+  const nd = computeNextDue(t);
+  toast(`🎉 수고했어요${_completePerson?' '+_completePerson:''}! ${nd?'다음 '+fmtKDate(nd):''}`);
+  render();
+}
+
+/* ===================== 작업 추가/수정 ===================== */
+function openTaskModal(id=null) {
+  const editing = id ? Store.data.tasks.find(t => t.id === id) : null;
+  const t = editing || { name:'', category:'', recur:{type:'interval', n:3, unit:'month'}, lastDone:'', memo:'' };
+  const r = t.recur;
+  const cats = [...new Set(Store.data.tasks.map(x => x.category).filter(Boolean))];
+  const sel = new Set(r.weekdays || []);
+  const m = el(`
+    <div class="modal-bg"><div class="modal">
+      <h2>${editing ? '✏️ 작업 수정' : '➕ 작업 추가'}</h2>
+      <div class="field"><label>🏷️ 이름 *</label><input id="f_name" value="${esc(t.name)}" placeholder="예: 정수기 필터 교체" /></div>
+      <div class="field"><label>📁 분류</label><input id="f_cat" value="${esc(t.category)}" placeholder="청소/점검/교체" list="catList" />
+        <datalist id="catList">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+      <div class="field"><label>🔁 반복 방식</label>
+        <select id="f_rtype" onchange="onRtypeChange()">
+          <option value="interval" ${r.type==='interval'?'selected':''}>주기 (마지막으로 한 날 기준)</option>
+          <option value="weekday" ${r.type==='weekday'?'selected':''}>요일 고정 (매주 특정 요일, 복수 선택 가능)</option>
+        </select></div>
+      <div id="intervalBox" class="field-row" style="${r.type==='weekday'?'display:none':''}">
+        <div class="field"><label>숫자</label><input id="f_n" type="number" min="1" value="${r.n||1}" /></div>
+        <div class="field"><label>단위</label><select id="f_unit">
+          <option value="day" ${r.unit==='day'?'selected':''}>일</option>
+          <option value="week" ${r.unit==='week'?'selected':''}>주</option>
+          <option value="month" ${r.unit==='month'?'selected':''}>개월</option>
+          <option value="year" ${r.unit==='year'?'selected':''}>년</option>
+        </select></div></div>
+      <div id="weekdayBox" class="field" style="${r.type==='weekday'?'':'display:none'}">
+        <label>📆 요일 (여러 개 선택 가능)</label>
+        <div class="wd-picker">${WD.map((w,i)=>`<label class="wd-opt ${sel.has(i)?'on':''}"><input type="checkbox" class="f_wd" value="${i}" ${sel.has(i)?'checked':''} onchange="this.closest('.wd-opt').classList.toggle('on',this.checked)"> ${w}</label>`).join('')}</div>
+      </div>
+      <div class="field"><label>🐾 마지막으로 한 날 (선택)</label><input id="f_last" type="date" value="${esc(t.lastDone||'')}" /></div>
+      <div class="field"><label>📝 메모</label><textarea id="f_memo" placeholder="예: A/S 연락처, 부품 모델명">${esc(t.memo||'')}</textarea></div>
+      <div class="actions">
+        ${editing ? `<button class="btn danger" onclick="deleteTask('${id}')">🗑️ 삭제</button>` : ''}
+        <button class="btn" onclick="closeModal()">취소</button>
+        <button class="btn primary" onclick="saveTask('${id||''}')">💾 저장</button>
+      </div>
+    </div></div>`);
+  showModal(m);
+}
+function onRtypeChange() {
+  const type = $('#f_rtype').value;
+  $('#intervalBox').style.display = type === 'weekday' ? 'none' : '';
+  $('#weekdayBox').style.display = type === 'weekday' ? '' : 'none';
+}
+function saveTask(id) {
+  const name = $('#f_name').value.trim();
+  if (!name) { toast('이름을 입력해주세요 🐱'); return; }
+  const type = $('#f_rtype').value;
+  let recur;
+  if (type === 'weekday') {
+    const wds = $all('.f_wd:checked').map(c => parseInt(c.value,10));
+    if (!wds.length) { toast('요일을 하나 이상 선택해주세요 📆'); return; }
+    recur = { type:'weekday', weekdays: wds };
+  } else {
+    const n = parseInt($('#f_n').value,10);
+    if (!n || n < 1) { toast('주기 숫자를 올바르게 입력해주세요'); return; }
+    recur = { type:'interval', n, unit: $('#f_unit').value };
+  }
+  const fields = { name, category: $('#f_cat').value.trim(), recur, lastDone: $('#f_last').value, memo: $('#f_memo').value.trim() };
+  if (id) { Object.assign(Store.data.tasks.find(t => t.id === id), fields); }
+  else { Store.data.tasks.push({ id: Store.uid(), lastBy:'', ...fields }); }
+  Store.save(); closeModal(); toast('💾 저장했어요!'); render();
+}
+function deleteTask(id) {
+  const t = Store.data.tasks.find(x => x.id === id);
+  if (!t || !confirm(`'${t.name}' 작업을 삭제할까요?`)) return;
+  Store.data.tasks = Store.data.tasks.filter(x => x.id !== id);
+  Store.save(); closeModal(); render();
+}
+
+/* ===================== 통계 ===================== */
+let statPeriod = 'month';
+function periodRange(kind) {
+  const now = todayDate();
+  if (kind === 'month') return { start:new Date(now.getFullYear(),now.getMonth(),1), end:new Date(now.getFullYear(),now.getMonth()+1,0),
+    label:`${now.getFullYear()}년 ${now.getMonth()+1}월` };
+  if (kind === 'quarter') { const q=Math.floor(now.getMonth()/3);
+    return { start:new Date(now.getFullYear(),q*3,1), end:new Date(now.getFullYear(),q*3+3,0), label:`${now.getFullYear()}년 ${q+1}분기` }; }
+  return { start:new Date(now.getFullYear(),0,1), end:new Date(now.getFullYear(),11,31), label:`${now.getFullYear()}년` };
+}
+function renderStats() {
+  const root = $('#tab-stats'); root.innerHTML = '';
+  const tabs = el(`<div class="period-tabs">
+    <button data-p="month" class="${statPeriod==='month'?'active':''}">📅 이번 달</button>
+    <button data-p="quarter" class="${statPeriod==='quarter'?'active':''}">🗓️ 이번 분기</button>
+    <button data-p="year" class="${statPeriod==='year'?'active':''}">📆 올해</button>
+  </div>`);
+  $all('button', tabs).forEach(b => b.addEventListener('click', () => { statPeriod = b.dataset.p; renderStats(); }));
+  root.appendChild(tabs);
+
+  const { start, end, label } = periodRange(statPeriod);
+  const inRange = Store.data.history.filter(h => { const d=parseDate(h.doneDate); return d && d>=start && d<=end; });
+
+  root.appendChild(el(`<div class="stat-card" style="text-align:center">
+    <div class="muted" style="font-weight:700">${esc(label)} 동안</div>
+    <div class="big-num">${inRange.length}<span style="font-size:16px"> 건</span></div>
+    <div class="muted">집안일을 완료했어요 🎉</div></div>`));
+
+  if (inRange.length === 0) {
+    root.appendChild(el(`<div class="empty">😺 이 기간엔 아직 완료 기록이 없어요.<br>할 일 탭에서 ✅ 완료를 눌러보세요!</div>`));
+    return;
+  }
+  // 사람별
+  const byPerson = {};
+  inRange.forEach(h => { const p = h.person || '미지정'; byPerson[p] = (byPerson[p]||0)+1; });
+  const persons = Object.entries(byPerson).sort((a,b)=>b[1]-a[1]);
+  const pmax = persons[0][1];
+  const pcard = el(`<div class="stat-card"><h3>🏆 가족 집안일 순위</h3></div>`);
+  persons.forEach(([name,cnt],i) => {
+    pcard.appendChild(el(`<div class="bar-row">
+      <div class="bn">${i<3?MEDALS[i]+' ':''}${esc(name)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(8,cnt/pmax*100)}%">${cnt}</div></div>
+    </div>`));
+  });
+  root.appendChild(pcard);
+  // 분류별
+  const byCat = {};
+  inRange.forEach(h => { const c = h.category || '기타'; byCat[c] = (byCat[c]||0)+1; });
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const cmax = cats[0][1];
+  const ccard = el(`<div class="stat-card"><h3>📁 분류별 집안일</h3></div>`);
+  cats.forEach(([name,cnt]) => {
+    ccard.appendChild(el(`<div class="bar-row">
+      <div class="bn">${esc(name)}</div>
+      <div class="bar-track"><div class="bar-fill cat" style="width:${Math.max(8,cnt/cmax*100)}%">${cnt}</div></div>
+    </div>`));
+  });
+  root.appendChild(ccard);
+}
+
+/* ===================== 이력 ===================== */
+let histFilter = '';
+function renderHistory() {
+  const root = $('#tab-history'); root.innerHTML = '';
+  const names = [...new Set(Store.data.history.map(h => h.taskName))];
+  const sel = el(`<div class="field"><label>🔎 작업별 필터</label>
+    <select id="histFilter"><option value="">전체 보기</option>
+    ${names.map(n=>`<option value="${esc(n)}" ${n===histFilter?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`);
+  root.appendChild(sel);
+  $('#histFilter').addEventListener('change', e => { histFilter = e.target.value; renderHistory(); });
+
+  const list = Store.data.history.filter(h => !histFilter || h.taskName === histFilter);
+  if (list.length === 0) { root.appendChild(el(`<div class="empty">📒 아직 완료 기록이 없어요</div>`)); return; }
+  for (const h of list) {
+    root.appendChild(el(`<div class="list-card">
+      <div class="top"><span class="nm">${esc(h.taskName)}</span>
+        ${h.person?`<span class="chip-cat">${esc(h.person)}</span>`:''}<span class="spacer"></span>
+        <span class="status-pill pill-ok">✅</span></div>
+      <div class="sub">🐾 ${fmtKDate(h.doneDate)} 시행${h.memo?` · 📝 ${esc(h.memo)}`:''}</div>
+    </div>`));
+  }
+}
+
+/* ===================== 설정 ===================== */
+function renderSettings() {
+  const root = $('#tab-settings'); root.innerHTML = '';
+
+  // 가족 구성원
+  const mSec = el(`<div><div class="sec-title">👨‍👩‍👧 가족 구성원</div>
+    <p class="muted" style="font-size:13px;margin-top:-2px">완료 기록 시 "누가 했나" 고를 수 있어요. 이모지를 붙이면 더 귀여워요 😺</p></div>`);
+  const mWrap = el(`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>`);
+  Store.data.members.forEach(m => {
+    const chip = el(`<span class="chip-cat" style="padding:6px 10px;font-size:13px">${esc(m)} <a href="#" style="color:var(--danger);text-decoration:none">✕</a></span>`);
+    chip.querySelector('a').addEventListener('click', e => { e.preventDefault(); removeMember(m); });
+    mWrap.appendChild(chip);
+  });
+  const addM = el(`<button class="btn sm">＋ 구성원 추가</button>`);
+  addM.addEventListener('click', addMember);
+  mWrap.appendChild(addM);
+  mSec.appendChild(mWrap);
+  root.appendChild(mSec);
+
+  // 백업
+  const bSec = el(`<div style="margin-top:24px"><div class="sec-title">💾 백업</div>
+    <p class="muted" style="font-size:13px;margin-top:-2px">데이터를 JSON 파일로 내보내거나 불러와요. (Google Drive 폴더에 보관하면 안전 😺)</p></div>`);
+  const exp = el(`<button class="btn" style="margin-right:8px">⬇️ 내보내기</button>`);
+  exp.addEventListener('click', exportBackup);
+  const imp = el(`<label class="btn" style="display:inline-block">⬆️ 불러오기<input type="file" accept="application/json" style="display:none"></label>`);
+  imp.querySelector('input').addEventListener('change', importBackup);
+  bSec.append(exp, imp);
+  root.appendChild(bSec);
+
+  root.appendChild(el(`<div class="muted" style="margin-top:24px">
+    <div class="sec-title">🐱 현황</div>
+    작업 ${Store.data.tasks.length}개 · 완료기록 ${Store.data.history.length}건 · 구성원 ${Store.data.members.length}명<br>코드: <b>${esc(Store.code)}</b></div>`));
+}
+function addMember() {
+  const name = prompt('가족 구성원 이름 (이모지 붙여도 좋아요 😺)');
+  if (!name || !name.trim()) return;
+  const n = name.trim();
+  if (Store.data.members.includes(n)) { toast('이미 있는 구성원이에요'); return; }
+  Store.data.members.push(n); Store.save(); render();
+}
+function removeMember(m) {
+  if (!confirm(`'${m}' 구성원을 목록에서 뺄까요? (기존 기록은 그대로 남아요)`)) return;
+  Store.data.members = Store.data.members.filter(x => x !== m); Store.save(); render();
+}
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(Store.data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); const d = new Date();
+  a.href = url; a.download = `김집사백업_${Store.code}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`;
+  a.click(); URL.revokeObjectURL(url); toast('💾 백업 파일을 저장했어요');
+}
+function importBackup(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  if (!confirm('현재 데이터를 불러온 파일로 덮어쓸까요?')) { ev.target.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try { const data = JSON.parse(e.target.result);
+      if (!data.tasks) throw new Error('형식 오류');
+      Store.data = { members: data.members||['🧔 남편','👩 아내'], tasks: data.tasks||[], history: data.history||[] };
+      Store.save(); render(); toast('✅ 불러오기 완료');
+    } catch (err) { toast('파일을 읽지 못했어요 😢'); }
+  };
+  reader.readAsText(file);
+}
+
+/* ===================== 모달 헬퍼 ===================== */
+function showModal(node) { closeModal(); node.addEventListener('click', e => { if (e.target === node) closeModal(); }); $('#modalRoot').appendChild(node); }
+function closeModal() { $('#modalRoot').innerHTML = ''; }
+
+/* ===================== 부팅 ===================== */
+(function boot() {
+  const last = localStorage.getItem('kimbutler_lastCode');
+  if (last) { $('#codeInput').value = last; enterSpace(); }
+})();
+</script>
+</body>
+</html>

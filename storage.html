@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>우리집 창고 관리</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --line: #e3e8ef;
+    --text: #1f2933;
+    --muted: #7b8794;
+    --primary: #2f6fed;
+    --primary-dark: #2459c4;
+    --danger: #e0483b;
+    --warn: #e8920c;
+    --ok: #1f9d57;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 14px rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    background: var(--bg); color: var(--text);
+    font-size: 15px; line-height: 1.5;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; font-size: 15px; }
+
+  /* ---------- 상단 바 ---------- */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--card); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 700; }
+  header .code-chip {
+    margin-left: auto; font-size: 12px; color: var(--muted);
+    background: var(--bg); border: 1px solid var(--line);
+    padding: 4px 9px; border-radius: 999px;
+  }
+
+  /* ---------- 탭 ---------- */
+  nav.tabs {
+    position: sticky; top: 53px; z-index: 40;
+    display: flex; background: var(--card); border-bottom: 1px solid var(--line);
+  }
+  nav.tabs button {
+    flex: 1; border: none; background: none; padding: 12px 4px;
+    font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent;
+    font-weight: 600;
+  }
+  nav.tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  main { padding: 16px; max-width: 760px; margin: 0 auto; padding-bottom: 90px; }
+
+  /* ---------- 공통 ---------- */
+  .muted { color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .spacer { flex: 1; }
+  .btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--text);
+    padding: 9px 14px; border-radius: 9px; font-size: 14px; font-weight: 600;
+  }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.primary:hover { background: var(--primary-dark); }
+  .btn.danger { color: var(--danger); border-color: #f1c4bf; }
+  .btn.sm { padding: 6px 10px; font-size: 13px; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 10px; }
+
+  /* ---------- 장소/칸 ---------- */
+  .loc-group { margin-bottom: 22px; }
+  .loc-title { font-size: 15px; font-weight: 700; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+  .loc-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+  .comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .comp-card {
+    position: relative; background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px; box-shadow: var(--shadow); cursor: pointer;
+    transition: border-color .15s;
+  }
+  .comp-card:hover { border-color: var(--primary); }
+  .comp-card .comp-name { font-weight: 700; font-size: 14px; }
+  .comp-card .comp-count { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .comp-card .badge-warn { position: absolute; top: 10px; right: 10px; font-size: 11px;
+    background: #fdeccb; color: var(--warn); padding: 2px 7px; border-radius: 999px; font-weight: 700; }
+
+  /* 호버/탭 내용물 패널 */
+  .comp-contents {
+    display: none; margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px;
+  }
+  .comp-card.open .comp-contents { display: block; }
+  @media (hover: hover) {
+    .comp-card:hover .comp-contents { display: block; }
+  }
+  .item-line { display: flex; align-items: center; gap: 6px; padding: 5px 0; }
+  .item-line .nm { flex: 1; font-size: 13.5px; }
+  .item-line .nm small { color: var(--muted); }
+  .qty-ctrl { display: flex; align-items: center; gap: 4px; }
+  .qty-ctrl button {
+    width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line);
+    background: var(--bg); font-size: 16px; font-weight: 700; line-height: 1; color: var(--text);
+  }
+  .qty-ctrl button:hover { background: #e8edf5; }
+  .qty-ctrl .qv { min-width: 30px; text-align: center; font-weight: 700; font-size: 14px;
+    background: none; border: none; cursor: pointer; }
+  .exp-warn { color: var(--warn) !important; font-weight: 700; }
+  .exp-over { color: var(--danger) !important; font-weight: 700; }
+
+  /* ---------- 검색 결과 / 이력 ---------- */
+  .list-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 8px; box-shadow: var(--shadow);
+  }
+  .list-card .top { display: flex; align-items: center; gap: 8px; }
+  .list-card .top .nm { font-weight: 700; }
+  .list-card .loc { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .hist-delta { font-weight: 700; }
+  .hist-plus { color: var(--ok); }
+  .hist-minus { color: var(--danger); }
+
+  /* ---------- 떠있는 추가 버튼 ---------- */
+  .fab {
+    position: fixed; right: 18px; bottom: 18px; z-index: 60;
+    background: var(--primary); color: #fff; border: none;
+    width: 56px; height: 56px; border-radius: 50%; font-size: 30px; line-height: 1;
+    box-shadow: 0 4px 16px rgba(47,111,237,.4);
+  }
+
+  /* ---------- 모달 ---------- */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(20,28,40,.45); z-index: 100;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  @media (min-width: 600px) { .modal-bg { align-items: center; } }
+  .modal {
+    background: var(--card); width: 100%; max-width: 480px; border-radius: 16px 16px 0 0;
+    padding: 18px; max-height: 92vh; overflow-y: auto;
+  }
+  @media (min-width: 600px) { .modal { border-radius: 16px; } }
+  .modal h2 { margin: 0 0 14px; font-size: 17px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: #fff;
+  }
+  .field textarea { resize: vertical; min-height: 56px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .modal .actions { display: flex; gap: 8px; margin-top: 8px; }
+  .modal .actions .btn { flex: 1; }
+  .photo-preview { margin-top: 8px; }
+  .photo-preview img { max-width: 100%; max-height: 160px; border-radius: 10px; border: 1px solid var(--line); }
+
+  /* 시작 화면 */
+  .start-wrap { max-width: 420px; margin: 8vh auto; padding: 24px; text-align: center; }
+  .start-wrap .logo { font-size: 48px; }
+  .start-wrap h1 { font-size: 22px; margin: 8px 0 4px; }
+  .start-wrap p { color: var(--muted); margin: 0 0 24px; }
+  .start-wrap input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; text-align: center; font-size: 16px; }
+  .start-wrap .btn { width: 100%; margin-top: 10px; }
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: #1f2933; color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    z-index: 200; opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .chip-cat { font-size: 11px; background: var(--bg); border: 1px solid var(--line); padding: 1px 7px; border-radius: 999px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- 시작 화면 -->
+<div id="startScreen" class="start-wrap">
+  <div class="logo">📦</div>
+  <h1>우리집 창고 관리</h1>
+  <p>가족 공유코드를 입력하세요.<br>같은 코드를 쓰는 사람끼리 창고를 공유합니다.</p>
+  <input id="codeInput" placeholder="예: kim-house-7392" autocomplete="off" />
+  <button class="btn primary" onclick="enterSpace()">입장하기</button>
+  <button class="btn" onclick="suggestCode()">새 코드 만들기</button>
+</div>
+
+<!-- 앱 본체 -->
+<div id="app" style="display:none">
+  <header>
+    <span style="font-size:20px">📦</span>
+    <h1>우리집 창고</h1>
+    <span class="code-chip" id="codeChip" onclick="changeCode()" title="코드 변경"></span>
+  </header>
+  <nav class="tabs">
+    <button data-tab="storage" class="active" onclick="switchTab('storage')">창고</button>
+    <button data-tab="search" onclick="switchTab('search')">검색</button>
+    <button data-tab="history" onclick="switchTab('history')">이력</button>
+    <button data-tab="settings" onclick="switchTab('settings')">설정</button>
+  </nav>
+  <main>
+    <div id="tab-storage"></div>
+    <div id="tab-search" style="display:none"></div>
+    <div id="tab-history" style="display:none"></div>
+    <div id="tab-settings" style="display:none"></div>
+  </main>
+  <button class="fab" onclick="openItemModal()" title="물품 추가">＋</button>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+
+<!-- Firebase 연결 (가족 실시간 공유) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8",
+    authDomain: "kimzipsa-bfe26.firebaseapp.com",
+    databaseURL: "https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "kimzipsa-bfe26",
+    storageBucket: "kimzipsa-bfe26.firebasestorage.app",
+    messagingSenderId: "99764860737",
+    appId: "1:99764860737:web:e0450a5ef9e0954a6ad3c0"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+</script>
+
+<script>
+/* =========================================================================
+ *  저장소 계층 (Store) — Firebase Realtime Database (가족 실시간 공유)
+ * ========================================================================= */
+const Store = {
+  code: null,
+  data: { locations: [], items: [], history: [] },
+  ref: null,
+  _ready: false,
+  init(code, onReady) {
+    this.code = code;
+    this._ready = false;
+    this.ref = db.ref('storage/' + code);
+    this.ref.on('value', snap => {
+      const val = snap.val();
+      if (val && (val.items || val.locations || val.history)) { this.data = val; }
+      else { this.data = this._empty(); this.ref.set(this.data); }
+      this.data.locations ||= [];
+      this.data.items ||= [];
+      this.data.history ||= [];
+      if (!this._ready) { this._ready = true; onReady && onReady(); }
+      else { render(); }
+    }, () => toast('연결 오류 😢 인터넷을 확인해주세요'));
+  },
+  _empty() {
+    return {
+      locations: [
+        { name: '팬트리', compartments: ['1번 서랍', '2번 서랍'] },
+        { name: '창고', compartments: ['박스 A', '선반 위'] }
+      ],
+      items: [],
+      history: []
+    };
+  },
+  save() { if (this.ref) this.ref.set(this.data); },
+  // ---- 편의 메서드 ----
+  uid() { return 'id' + Math.random().toString(36).slice(2, 10) + (this.data.history.length + this.data.items.length); },
+};
+
+/* =========================================================================
+ *  유틸
+ * ========================================================================= */
+function $(sel, root=document) { return root.querySelector(sel); }
+function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function nowStr() { const d = new Date(); return d.toISOString(); }
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm = setTimeout(() => t.classList.remove('show'), 1600);
+}
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  if (isNaN(d)) return null;
+  return Math.round((d - today) / 86400000);
+}
+function expiryClass(dateStr) {
+  const d = daysUntil(dateStr);
+  if (d === null) return '';
+  if (d < 0) return 'exp-over';
+  if (d <= 7) return 'exp-warn';
+  return '';
+}
+function expiryLabel(dateStr) {
+  const d = daysUntil(dateStr);
+  if (d === null) return '';
+  if (d < 0) return `유통기한 ${-d}일 지남`;
+  if (d === 0) return '오늘까지';
+  if (d <= 7) return `${d}일 남음`;
+  return `~${dateStr}`;
+}
+
+/* =========================================================================
+ *  시작 화면 / 코드 입장
+ * ========================================================================= */
+function suggestCode() {
+  const animals = ['fox','bear','owl','deer','seal','duck','cat','dog'];
+  const a = animals[Math.floor(Math.random()*animals.length)];
+  const n = Math.floor(1000 + Math.random()*9000);
+  $('#codeInput').value = `house-${a}-${n}`;
+}
+function enterSpace() {
+  const code = $('#codeInput').value.trim().toLowerCase().replace(/\s+/g, '-');
+  if (!code) { toast('코드를 입력하세요'); return; }
+  localStorage.setItem('lastCode', code);
+  $('#startScreen').style.display = 'none';
+  $('#app').style.display = '';
+  $('#codeChip').textContent = '코드: ' + code;
+  toast('연결 중...');
+  Store.init(code, () => switchTab('storage'));
+}
+function changeCode() {
+  if (confirm('다른 가족 코드로 전환할까요? (현재 데이터는 이 코드에 그대로 보관됩니다)')) {
+    localStorage.removeItem('lastCode');
+    location.reload();
+  }
+}
+
+/* =========================================================================
+ *  탭 전환
+ * ========================================================================= */
+let currentTab = 'storage';
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ['storage','search','history','settings'].forEach(t => {
+    $('#tab-' + t).style.display = (t === tab) ? '' : 'none';
+  });
+  render();
+}
+function render() {
+  if (currentTab === 'storage') renderStorage();
+  else if (currentTab === 'search') renderSearch();
+  else if (currentTab === 'history') renderHistory();
+  else if (currentTab === 'settings') renderSettings();
+}
+
+/* =========================================================================
+ *  창고 보기
+ * ========================================================================= */
+function renderStorage() {
+  const root = $('#tab-storage');
+  root.innerHTML = '';
+  if (Store.data.locations.length === 0) {
+    root.appendChild(el(`<div class="empty">아직 장소가 없습니다.<br>설정 탭에서 장소와 칸을 추가하세요.</div>`));
+    return;
+  }
+  for (const loc of Store.data.locations) {
+    const group = el(`<div class="loc-group"></div>`);
+    group.appendChild(el(`<h3 class="loc-title"><span class="dot"></span>${esc(loc.name)}</h3>`));
+    const grid = el(`<div class="comp-grid"></div>`);
+    for (const comp of loc.compartments) {
+      const items = Store.data.items.filter(i => i.locName === loc.name && i.compName === comp);
+      const warnCount = items.filter(i => expiryClass(i.expiry)).length;
+      const card = el(`<div class="comp-card"></div>`);
+      card.appendChild(el(`<div class="comp-name">${esc(comp)}</div>`));
+      card.appendChild(el(`<div class="comp-count">물품 ${items.length}종</div>`));
+      if (warnCount) card.appendChild(el(`<span class="badge-warn">⏰ ${warnCount}</span>`));
+      const contents = el(`<div class="comp-contents"></div>`);
+      if (items.length === 0) {
+        contents.appendChild(el(`<div class="muted" style="font-size:13px">비어 있음</div>`));
+      } else {
+        for (const it of items) contents.appendChild(itemLine(it));
+      }
+      // 이 칸에 바로 물품 추가
+      const addHere = el(`<button class="btn sm add-here" style="margin-top:8px; width:100%">＋ 여기에 물품 추가</button>`);
+      addHere.addEventListener('click', e => {
+        e.stopPropagation();
+        openItemModal(null, { locName: loc.name, compName: comp });
+      });
+      contents.appendChild(addHere);
+      card.appendChild(contents);
+      // 모바일: 탭으로 토글
+      card.addEventListener('click', e => {
+        if (e.target.closest('.qty-ctrl') || e.target.closest('.nm') || e.target.closest('.add-here')) return;
+        card.classList.toggle('open');
+      });
+      grid.appendChild(card);
+    }
+    group.appendChild(grid);
+    root.appendChild(group);
+  }
+}
+
+function itemLine(it) {
+  const line = el(`<div class="item-line"></div>`);
+  const expCls = expiryClass(it.expiry);
+  const nm = el(`<div class="nm">${esc(it.name)} <small>${it.unit?esc(it.unit):''}</small>
+    ${it.expiry ? `<div style="font-size:11px" class="${expCls}">${esc(expiryLabel(it.expiry))}</div>` : ''}</div>`);
+  nm.style.cursor = 'pointer';
+  nm.addEventListener('click', e => { e.stopPropagation(); openItemModal(it.id); });
+  line.appendChild(nm);
+  const ctrl = el(`<div class="qty-ctrl"></div>`);
+  const minus = el(`<button title="1 차감">−</button>`);
+  const qv = el(`<button class="qv" title="수량/사유 입력">${it.qty}</button>`);
+  const plus = el(`<button title="1 추가">＋</button>`);
+  minus.addEventListener('click', e => { e.stopPropagation(); adjustQty(it.id, -1); });
+  plus.addEventListener('click', e => { e.stopPropagation(); adjustQty(it.id, +1); });
+  qv.addEventListener('click', e => { e.stopPropagation(); openAdjustModal(it.id); });
+  ctrl.append(minus, qv, plus);
+  line.appendChild(ctrl);
+  return line;
+}
+
+/* =========================================================================
+ *  수량 증감 + 이력
+ * ========================================================================= */
+function adjustQty(id, delta, reason='') {
+  const it = Store.data.items.find(i => i.id === id);
+  if (!it) return;
+  const newQty = it.qty + delta;
+  if (newQty < 0) { toast('수량이 0보다 작아질 수 없습니다'); return; }
+  it.qty = newQty;
+  it.updatedAt = nowStr();
+  Store.data.history.unshift({
+    id: Store.uid(), at: nowStr(), itemName: it.name,
+    delta, reason: reason || '', qtyAfter: newQty
+  });
+  Store.save();
+  render();
+}
+
+function openAdjustModal(id) {
+  const it = Store.data.items.find(i => i.id === id);
+  if (!it) return;
+  const m = el(`
+    <div class="modal-bg">
+      <div class="modal">
+        <h2>${esc(it.name)} — 입출고</h2>
+        <p class="muted" style="margin-top:-6px">현재 수량: <b>${it.qty}${esc(it.unit||'')}</b></p>
+        <div class="field-row">
+          <div class="field"><label>변동 (예: -3 차감, 2 추가)</label>
+            <input id="adjDelta" type="number" value="-1" /></div>
+        </div>
+        <div class="field"><label>사유 (선택)</label>
+          <input id="adjReason" placeholder="예: 요리에 사용, 선물 받음" /></div>
+        <div class="actions">
+          <button class="btn" onclick="closeModal()">취소</button>
+          <button class="btn primary" onclick="submitAdjust('${id}')">기록</button>
+        </div>
+      </div>
+    </div>`);
+  showModal(m);
+}
+function submitAdjust(id) {
+  const delta = parseInt($('#adjDelta').value, 10);
+  if (!delta || isNaN(delta)) { toast('변동 값을 입력하세요'); return; }
+  const reason = $('#adjReason').value.trim();
+  closeModal();
+  adjustQty(id, delta, reason);
+  toast('기록되었습니다');
+}
+
+/* =========================================================================
+ *  물품 추가 / 수정 모달
+ * ========================================================================= */
+function openItemModal(id=null, preset=null) {
+  const editing = id ? Store.data.items.find(i => i.id === id) : null;
+  const it = editing || { name:'', qty:1, unit:'', category:'', expiry:'', memo:'', photo:'',
+    locName: preset?.locName || '', compName: preset?.compName || '' };
+
+  const locOptions = Store.data.locations.map(l => `<option value="${esc(l.name)}" ${l.name===it.locName?'selected':''}>${esc(l.name)}</option>`).join('');
+  const m = el(`
+    <div class="modal-bg">
+      <div class="modal">
+        <h2>${editing ? '물품 수정' : '물품 추가'}</h2>
+        <div class="field"><label>이름 *</label><input id="f_name" value="${esc(it.name)}" placeholder="예: 라면, 드라이버 세트" /></div>
+        <div class="field-row">
+          <div class="field"><label>수량 *</label><input id="f_qty" type="number" value="${it.qty}" /></div>
+          <div class="field"><label>단위</label><input id="f_unit" value="${esc(it.unit)}" placeholder="개/병/봉지" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>장소 *</label><select id="f_loc" onchange="onLocChange()">
+            <option value="">선택</option>${locOptions}</select></div>
+          <div class="field"><label>칸 *</label><select id="f_comp"></select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>분류</label><input id="f_cat" value="${esc(it.category)}" placeholder="식품/공구/의류" list="catList" /></div>
+          <div class="field"><label>유통기한</label><input id="f_exp" type="date" value="${esc(it.expiry)}" /></div>
+        </div>
+        <datalist id="catList">${categoryOptions()}</datalist>
+        <div class="field"><label>메모</label><textarea id="f_memo" placeholder="예: 엄마가 주신 것">${esc(it.memo)}</textarea></div>
+        <div class="field"><label>사진</label>
+          <input id="f_photo" type="file" accept="image/*" onchange="onPhotoPick(event)" />
+          <div class="photo-preview" id="photoPreview">${it.photo?`<img src="${it.photo}" />`:''}</div>
+          <input type="hidden" id="f_photo_data" value="${it.photo||''}" />
+        </div>
+        <div class="actions">
+          ${editing ? `<button class="btn danger" onclick="deleteItem('${id}')">삭제</button>` : ''}
+          <button class="btn" onclick="closeModal()">취소</button>
+          <button class="btn primary" onclick="saveItem('${id||''}')">저장</button>
+        </div>
+      </div>
+    </div>`);
+  showModal(m);
+  // 칸 옵션 채우기
+  if (it.locName) { $('#f_loc').value = it.locName; onLocChange(it.compName); }
+}
+function categoryOptions() {
+  const cats = [...new Set(Store.data.items.map(i => i.category).filter(Boolean))];
+  return cats.map(c => `<option value="${esc(c)}">`).join('');
+}
+function onLocChange(selectComp=null) {
+  const loc = Store.data.locations.find(l => l.name === $('#f_loc').value);
+  const sel = $('#f_comp');
+  sel.innerHTML = '<option value="">선택</option>' +
+    (loc ? loc.compartments.map(c => `<option value="${esc(c)}" ${c===selectComp?'selected':''}>${esc(c)}</option>`).join('') : '');
+}
+function onPhotoPick(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 800;
+      let { width, height } = img;
+      if (width > max || height > max) {
+        if (width > height) { height = Math.round(height * max / width); width = max; }
+        else { width = Math.round(width * max / height); height = max; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const data = canvas.toDataURL('image/jpeg', 0.7);
+      $('#f_photo_data').value = data;
+      $('#photoPreview').innerHTML = `<img src="${data}" />`;
+    };
+    img.onerror = () => toast('이미지를 읽지 못했습니다');
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function saveItem(id) {
+  const name = $('#f_name').value.trim();
+  const qty = parseInt($('#f_qty').value, 10);
+  const locName = $('#f_loc').value;
+  const compName = $('#f_comp').value;
+  if (!name) { toast('이름을 입력하세요'); return; }
+  if (isNaN(qty) || qty < 0) { toast('수량을 올바르게 입력하세요'); return; }
+  if (!locName || !compName) { toast('장소와 칸을 선택하세요'); return; }
+  const fields = {
+    name, qty, unit: $('#f_unit').value.trim(), category: $('#f_cat').value.trim(),
+    expiry: $('#f_exp').value, memo: $('#f_memo').value.trim(),
+    photo: $('#f_photo_data').value, locName, compName, updatedAt: nowStr()
+  };
+  if (id) {
+    const it = Store.data.items.find(i => i.id === id);
+    const oldQty = it.qty;
+    Object.assign(it, fields);
+    if (qty !== oldQty) {
+      Store.data.history.unshift({ id: Store.uid(), at: nowStr(), itemName: name,
+        delta: qty - oldQty, reason: '수정', qtyAfter: qty });
+    }
+  } else {
+    const item = { id: Store.uid(), createdAt: nowStr(), ...fields };
+    Store.data.items.push(item);
+    Store.data.history.unshift({ id: Store.uid(), at: nowStr(), itemName: name,
+      delta: qty, reason: '신규 등록', qtyAfter: qty });
+  }
+  Store.save();
+  closeModal();
+  toast('저장되었습니다');
+  render();
+}
+function deleteItem(id) {
+  const it = Store.data.items.find(i => i.id === id);
+  if (!it) return;
+  if (!confirm(`'${it.name}' 물품을 삭제할까요?`)) return;
+  Store.data.items = Store.data.items.filter(i => i.id !== id);
+  Store.data.history.unshift({ id: Store.uid(), at: nowStr(), itemName: it.name,
+    delta: 0, reason: '물품 삭제', qtyAfter: 0 });
+  Store.save();
+  closeModal();
+  render();
+}
+
+/* =========================================================================
+ *  검색
+ * ========================================================================= */
+let searchQuery = '';
+function renderSearch() {
+  const root = $('#tab-search');
+  root.innerHTML = '';
+  const box = el(`<div class="field"><input id="searchBox" placeholder="🔍 물품 이름으로 검색" value="${esc(searchQuery)}" /></div>`);
+  root.appendChild(box);
+  const results = el(`<div id="searchResults"></div>`);
+  root.appendChild(results);
+  const input = $('#searchBox');
+  input.addEventListener('input', () => { searchQuery = input.value; renderSearchResults(); });
+  renderSearchResults();
+  input.focus();
+}
+function renderSearchResults() {
+  const root = $('#searchResults');
+  root.innerHTML = '';
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) { root.appendChild(el(`<div class="empty">물품 이름을 입력하세요</div>`)); return; }
+  const matches = Store.data.items.filter(i =>
+    i.name.toLowerCase().includes(q) || (i.category||'').toLowerCase().includes(q) || (i.memo||'').toLowerCase().includes(q));
+  if (matches.length === 0) { root.appendChild(el(`<div class="empty">검색 결과가 없습니다</div>`)); return; }
+  for (const it of matches) {
+    const card = el(`<div class="list-card"></div>`);
+    const top = el(`<div class="top"><span class="nm">${esc(it.name)}</span>
+      ${it.category?`<span class="chip-cat">${esc(it.category)}</span>`:''}
+      <span class="spacer"></span><b>${it.qty}${esc(it.unit||'')}</b></div>`);
+    card.appendChild(top);
+    card.appendChild(el(`<div class="loc">📍 ${esc(it.locName)} → ${esc(it.compName)}
+      ${it.expiry?` · <span class="${expiryClass(it.expiry)}">${esc(expiryLabel(it.expiry))}</span>`:''}</div>`));
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => openItemModal(it.id));
+    root.appendChild(card);
+  }
+}
+
+/* =========================================================================
+ *  이력
+ * ========================================================================= */
+let historyFilter = '';
+function renderHistory() {
+  const root = $('#tab-history');
+  root.innerHTML = '';
+  const names = [...new Set(Store.data.history.map(h => h.itemName))];
+  const filterSel = el(`<div class="field"><label>물품별 필터</label>
+    <select id="histFilter"><option value="">전체</option>
+    ${names.map(n => `<option value="${esc(n)}" ${n===historyFilter?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`);
+  root.appendChild(filterSel);
+  $('#histFilter').addEventListener('change', e => { historyFilter = e.target.value; renderHistory(); });
+
+  const list = Store.data.history.filter(h => !historyFilter || h.itemName === historyFilter);
+  if (list.length === 0) { root.appendChild(el(`<div class="empty">이력이 없습니다</div>`)); return; }
+  for (const h of list) {
+    const sign = h.delta > 0 ? `<span class="hist-delta hist-plus">+${h.delta}</span>`
+              : h.delta < 0 ? `<span class="hist-delta hist-minus">${h.delta}</span>`
+              : `<span class="hist-delta muted">·</span>`;
+    const card = el(`<div class="list-card">
+      <div class="top"><span class="nm">${esc(h.itemName)}</span>
+        <span class="spacer"></span>${sign}
+        <span class="muted" style="font-size:12px">→ ${h.qtyAfter}</span></div>
+      <div class="loc">${fmtDate(h.at)}${h.reason?` · ${esc(h.reason)}`:''}</div>
+    </div>`);
+    root.appendChild(card);
+  }
+}
+
+/* =========================================================================
+ *  설정 (장소/칸 관리, 백업)
+ * ========================================================================= */
+function renderSettings() {
+  const root = $('#tab-settings');
+  root.innerHTML = '';
+
+  // 장소/칸 관리
+  const locSec = el(`<div><h3 class="loc-title"><span class="dot"></span>장소 · 칸 관리</h3></div>`);
+  for (const loc of Store.data.locations) {
+    const card = el(`<div class="list-card"></div>`);
+    const top = el(`<div class="top"><span class="nm">${esc(loc.name)}</span><span class="spacer"></span></div>`);
+    const del = el(`<button class="btn sm danger">장소 삭제</button>`);
+    del.addEventListener('click', () => deleteLocation(loc.name));
+    top.appendChild(del);
+    card.appendChild(top);
+    const compWrap = el(`<div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px"></div>`);
+    for (const c of loc.compartments) {
+      const chip = el(`<span class="chip-cat" style="padding:4px 8px">${esc(c)} <a href="#" style="color:var(--danger);text-decoration:none">✕</a></span>`);
+      chip.querySelector('a').addEventListener('click', e => { e.preventDefault(); deleteCompartment(loc.name, c); });
+      compWrap.appendChild(chip);
+    }
+    const addComp = el(`<button class="btn sm">＋ 칸 추가</button>`);
+    addComp.addEventListener('click', () => addCompartment(loc.name));
+    compWrap.appendChild(addComp);
+    card.appendChild(compWrap);
+    locSec.appendChild(card);
+  }
+  const addLoc = el(`<button class="btn primary" style="margin-top:6px">＋ 장소 추가</button>`);
+  addLoc.addEventListener('click', addLocation);
+  locSec.appendChild(addLoc);
+  root.appendChild(locSec);
+
+  // 백업
+  const backupSec = el(`<div style="margin-top:26px">
+    <h3 class="loc-title"><span class="dot"></span>백업</h3>
+    <p class="muted" style="font-size:13px">데이터를 JSON 파일로 내보내거나, 다른 기기/백업에서 불러옵니다. (Google Drive 폴더에 보관하면 안전합니다)</p>
+  </div>`);
+  const expBtn = el(`<button class="btn" style="margin-right:8px">⬇ 백업 내보내기</button>`);
+  expBtn.addEventListener('click', exportBackup);
+  const impLabel = el(`<label class="btn" style="display:inline-block">⬆ 백업 불러오기<input type="file" accept="application/json" style="display:none" /></label>`);
+  impLabel.querySelector('input').addEventListener('change', importBackup);
+  backupSec.append(expBtn, impLabel);
+  root.appendChild(backupSec);
+
+  // 통계
+  const stat = el(`<div style="margin-top:26px" class="muted">
+    <h3 class="loc-title"><span class="dot"></span>현황</h3>
+    물품 ${Store.data.items.length}종 · 총 ${Store.data.items.reduce((s,i)=>s+i.qty,0)}개 · 이력 ${Store.data.history.length}건<br>
+    현재 코드: <b>${esc(Store.code)}</b>
+  </div>`);
+  root.appendChild(stat);
+}
+function addLocation() {
+  const name = prompt('새 장소 이름 (예: 베란다 창고)');
+  if (!name || !name.trim()) return;
+  if (Store.data.locations.some(l => l.name === name.trim())) { toast('이미 있는 장소입니다'); return; }
+  Store.data.locations.push({ name: name.trim(), compartments: [] });
+  Store.save(); render();
+}
+function deleteLocation(name) {
+  const used = Store.data.items.some(i => i.locName === name);
+  if (used && !confirm(`'${name}'에 물품이 있습니다. 그래도 장소를 삭제할까요? (물품의 위치 정보가 비워집니다)`)) return;
+  if (!used && !confirm(`'${name}' 장소를 삭제할까요?`)) return;
+  Store.data.locations = Store.data.locations.filter(l => l.name !== name);
+  Store.data.items.forEach(i => { if (i.locName === name) { i.locName = ''; i.compName = ''; } });
+  Store.save(); render();
+}
+function addCompartment(locName) {
+  const name = prompt('새 칸 이름 (예: 3번 서랍)');
+  if (!name || !name.trim()) return;
+  const loc = Store.data.locations.find(l => l.name === locName);
+  if (loc.compartments.includes(name.trim())) { toast('이미 있는 칸입니다'); return; }
+  loc.compartments.push(name.trim());
+  Store.save(); render();
+}
+function deleteCompartment(locName, comp) {
+  const used = Store.data.items.some(i => i.locName === locName && i.compName === comp);
+  if (used && !confirm(`'${comp}' 칸에 물품이 있습니다. 그래도 삭제할까요?`)) return;
+  if (!used && !confirm(`'${comp}' 칸을 삭제할까요?`)) return;
+  const loc = Store.data.locations.find(l => l.name === locName);
+  loc.compartments = loc.compartments.filter(c => c !== comp);
+  Store.data.items.forEach(i => { if (i.locName === locName && i.compName === comp) i.compName = ''; });
+  Store.save(); render();
+}
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(Store.data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = url; a.download = `창고백업_${Store.code}_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('백업 파일을 저장했습니다');
+}
+function importBackup(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  if (!confirm('현재 데이터를 불러온 파일로 덮어쓸까요?')) { ev.target.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.items || !data.locations) throw new Error('형식 오류');
+      Store.data = { locations: data.locations||[], items: data.items||[], history: data.history||[] };
+      Store.save(); render();
+      toast('불러오기 완료');
+    } catch (err) { toast('파일을 읽지 못했습니다'); }
+  };
+  reader.readAsText(file);
+}
+
+/* =========================================================================
+ *  모달 헬퍼
+ * ========================================================================= */
+function showModal(node) {
+  closeModal();
+  node.addEventListener('click', e => { if (e.target === node) closeModal(); });
+  $('#modalRoot').appendChild(node);
+}
+function closeModal() { $('#modalRoot').innerHTML = ''; }
+
+/* =========================================================================
+ *  부팅
+ * ========================================================================= */
+(function boot() {
+  const last = localStorage.getItem('lastCode');
+  if (last) {
+    $('#codeInput').value = last;
+    enterSpace();
+  }
+})();
+</script>
+</body>
+</html>
