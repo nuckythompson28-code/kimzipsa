@@ -119,6 +119,14 @@
     padding: 11px 20px; border-radius: 999px; font-size: 14px; z-index: 200; opacity: 0; transition: opacity .2s; pointer-events: none; font-weight: 600; }
   .toast.show { opacity: 1; }
 </style>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#7c5cff" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="김집사" />
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});}</script>
 </head>
 <body>
 

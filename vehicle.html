@@ -100,6 +100,14 @@
   .reg-hero h2 { margin:10px 0 6px; }
   .reg-hero p { color:var(--muted); margin:0 0 20px; }
 </style>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#7c5cff" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="김집사" />
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});}</script>
 </head>
 <body>
 

@@ -1,0 +1,16 @@
+{
+  "name": "김집사 - 우리집 살림 매니저",
+  "short_name": "김집사",
+  "description": "집안일·창고·차량·일정·장보기·벌금·기념일을 가족이 함께 관리하는 우리집 매니저",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f4fb",
+  "theme_color": "#7c5cff",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
