@@ -54,6 +54,10 @@
   }
   nav.tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
 
+  .modbar { display:flex; gap:5px; padding:7px 10px; background:#2a2440; overflow-x:auto; }
+  .modbar a { flex:0 0 auto; text-decoration:none; color:#cbc5e8; font-weight:700; font-size:13px; padding:6px 12px; border-radius:999px; white-space:nowrap; }
+  .modbar a.on { background:#7c5cff; color:#fff; }
+
   main { padding: 16px; max-width: 760px; margin: 0 auto; padding-bottom: 90px; }
 
   /* ---------- 공통 ---------- */
@@ -183,6 +187,12 @@
 
 <!-- 앱 본체 -->
 <div id="app" style="display:none">
+  <div class="modbar">
+    <a href="index.html">🏠 홈</a>
+    <a href="butler.html">🧹 집안일</a>
+    <a href="storage.html" class="on">📦 창고</a>
+    <a href="vehicle.html">🚗 차량</a>
+  </div>
   <header>
     <span style="font-size:20px">📦</span>
     <h1>우리집 창고</h1>
@@ -315,7 +325,7 @@ function suggestCode() {
 function enterSpace() {
   const code = $('#codeInput').value.trim().toLowerCase().replace(/\s+/g, '-');
   if (!code) { toast('코드를 입력하세요'); return; }
-  localStorage.setItem('lastCode', code);
+  localStorage.setItem('kimzipsa_code', code);
   $('#startScreen').style.display = 'none';
   $('#app').style.display = '';
   $('#codeChip').textContent = '코드: ' + code;
@@ -323,9 +333,9 @@ function enterSpace() {
   Store.init(code, () => switchTab('storage'));
 }
 function changeCode() {
-  if (confirm('다른 가족 코드로 전환할까요? (현재 데이터는 이 코드에 그대로 보관됩니다)')) {
-    localStorage.removeItem('lastCode');
-    location.reload();
+  if (confirm('홈으로 가서 다른 코드로 바꿀까요?')) {
+    localStorage.removeItem('kimzipsa_code');
+    location.href = 'index.html';
   }
 }
 
@@ -782,9 +792,9 @@ function closeModal() { $('#modalRoot').innerHTML = ''; }
  *  부팅
  * ========================================================================= */
 (function boot() {
-  const last = localStorage.getItem('lastCode');
-  if (last) {
-    $('#codeInput').value = last;
+  const code = localStorage.getItem('kimzipsa_code');
+  if (code) {
+    $('#codeInput').value = code;
     enterSpace();
   }
 })();

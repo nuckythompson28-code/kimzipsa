@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🚗 김집사 — 차량 일지</title>
+<style>
+  :root {
+    --bg: #f5f4fb; --card: #fff; --line: #e7e4f0; --text: #2a2440; --muted: #8a85a3;
+    --primary: #7c5cff; --primary-dark: #6344e0; --danger: #e0483b; --warn: #e8920c; --ok: #1f9d57;
+    --pink: #ff7eb6; --shadow: 0 1px 3px rgba(40,30,80,.08), 0 4px 16px rgba(40,30,80,.06);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; font-size: 15px; }
+
+  .modbar { display:flex; gap:5px; padding:7px 10px; background:#2a2440; overflow-x:auto; }
+  .modbar a { flex:0 0 auto; text-decoration:none; color:#cbc5e8; font-weight:700; font-size:13px; padding:6px 12px; border-radius:999px; white-space:nowrap; }
+  .modbar a.on { background:#7c5cff; color:#fff; }
+
+  header { position: sticky; top: 0; z-index: 50; background: var(--card); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 9px; padding: 11px 16px; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 800; }
+  header .code-chip { margin-left: auto; font-size: 12px; color: var(--muted); background: var(--bg);
+    border: 1px solid var(--line); padding: 4px 9px; border-radius: 999px; cursor: pointer; }
+
+  nav.tabs { position: sticky; top: 54px; z-index: 40; display: flex; background: var(--card); border-bottom: 1px solid var(--line); }
+  nav.tabs button { flex: 1; border: none; background: none; padding: 11px 2px; font-size: 13px;
+    color: var(--muted); border-bottom: 2.5px solid transparent; font-weight: 700; }
+  nav.tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  main { padding: 16px; max-width: 760px; margin: 0 auto; padding-bottom: 92px; }
+
+  .muted { color: var(--muted); }
+  .spacer { flex: 1; }
+  .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 9px 14px;
+    border-radius: 10px; font-size: 14px; font-weight: 700; }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .btn.danger { color: var(--danger); border-color: #f1c4bf; }
+  .btn.sm { padding: 6px 11px; font-size: 13px; }
+  .empty { text-align: center; color: var(--muted); padding: 44px 10px; font-size: 14.5px; }
+  .chip-cat { font-size: 11px; background: var(--bg); border: 1px solid var(--line); padding: 1px 8px; border-radius: 999px; color: var(--muted); }
+  .sec-title { font-size: 13px; font-weight: 800; color: var(--muted); margin: 18px 0 9px; }
+
+  .car-select { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .car-select select { flex:1; padding:10px; border:1px solid var(--line); border-radius:10px; background:#fff; font-weight:700; }
+
+  .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 15px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .stat-card h3 { margin: 0 0 12px; font-size: 14.5px; }
+  .kv { display:flex; gap:10px; flex-wrap:wrap; }
+  .kv .box { flex:1; min-width:120px; background:var(--bg); border-radius:12px; padding:12px; text-align:center; }
+  .kv .box .n { font-size:24px; font-weight:800; color:var(--primary); }
+  .kv .box .l { font-size:12px; color:var(--muted); margin-top:2px; }
+
+  .list-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+    margin-bottom: 8px; box-shadow: var(--shadow); }
+  .list-card.click { cursor:pointer; }
+  .list-card .top { display: flex; align-items: center; gap: 8px; }
+  .list-card .top .nm { font-weight: 800; }
+  .list-card .sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .list-card.over { border-left: 5px solid var(--danger); }
+  .list-card.soon { border-left: 5px solid var(--warn); }
+  .status-pill { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill-over { background: #fbe3e0; color: var(--danger); }
+  .pill-soon { background: #fdeccb; color: var(--warn); }
+  .pill-ok { background: #e3f3ea; color: var(--ok); }
+  .pill-todo { background: #ffe6f1; color: var(--pink); }
+
+  .fab { position: fixed; right: 18px; bottom: 18px; z-index: 60; background: var(--primary); color: #fff;
+    border: none; width: 58px; height: 58px; border-radius: 50%; font-size: 30px; line-height: 1; box-shadow: 0 6px 18px rgba(124,92,255,.45); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(30,22,60,.45); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+  @media (min-width: 600px) { .modal-bg { align-items: center; } }
+  .modal { background: var(--card); width: 100%; max-width: 480px; border-radius: 18px 18px 0 0; padding: 18px; max-height: 92vh; overflow-y: auto; }
+  @media (min-width: 600px) { .modal { border-radius: 18px; } }
+  .modal h2 { margin: 0 0 14px; font-size: 17px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 5px; font-weight: 700; }
+  .field input, .field select, .field textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .modal .actions { display: flex; gap: 8px; margin-top: 8px; }
+  .modal .actions .btn { flex: 1; }
+
+  .start-wrap { max-width: 420px; margin: 7vh auto; padding: 24px; text-align: center; }
+  .start-wrap .logo { font-size: 56px; }
+  .start-wrap h1 { font-size: 24px; margin: 6px 0 2px; font-weight: 800; }
+  .start-wrap p { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+  .start-wrap input { width: 100%; padding: 13px; border: 1px solid var(--line); border-radius: 12px; text-align: center; font-size: 16px; }
+  .start-wrap .btn { width: 100%; margin-top: 10px; }
+  .toast { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); background: #2a2440; color: #fff;
+    padding: 11px 20px; border-radius: 999px; font-size: 14px; z-index: 200; opacity: 0; transition: opacity .2s; pointer-events: none; font-weight: 600; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="startScreen" class="start-wrap">
+  <div class="logo">🚗</div>
+  <h1>김집사 — 차량</h1>
+  <p>가족 공유코드를 입력하세요 😺</p>
+  <input id="codeInput" placeholder="예: kim-house-7392" autocomplete="off" />
+  <button class="btn primary" onclick="enterSpace()">🚪 입장하기</button>
+</div>
+
+<div id="app" style="display:none">
+  <div class="modbar">
+    <a href="index.html">🏠 홈</a>
+    <a href="butler.html">🧹 집안일</a>
+    <a href="storage.html">📦 창고</a>
+    <a href="vehicle.html" class="on">🚗 차량</a>
+  </div>
+  <header>
+    <span style="font-size:22px">🚗</span>
+    <h1>차량 일지</h1>
+    <span class="code-chip" id="codeChip" onclick="changeCode()" title="코드 변경"></span>
+  </header>
+  <nav class="tabs">
+    <button data-tab="summary" class="active" onclick="switchTab('summary')">📋 요약</button>
+    <button data-tab="fuel" onclick="switchTab('fuel')">⛽ 주유</button>
+    <button data-tab="service" onclick="switchTab('service')">🔧 정비</button>
+    <button data-tab="due" onclick="switchTab('due')">📅 만기</button>
+    <button data-tab="settings" onclick="switchTab('settings')">⚙️</button>
+  </nav>
+  <main>
+    <div id="tab-summary"></div>
+    <div id="tab-fuel" style="display:none"></div>
+    <div id="tab-service" style="display:none"></div>
+    <div id="tab-due" style="display:none"></div>
+    <div id="tab-settings" style="display:none"></div>
+  </main>
+  <button class="fab" id="fab" onclick="onFab()" title="추가">＋</button>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+
+<!-- Firebase 연결 -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8",
+    authDomain: "kimzipsa-bfe26.firebaseapp.com",
+    databaseURL: "https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "kimzipsa-bfe26",
+    storageBucket: "kimzipsa-bfe26.firebasestorage.app",
+    messagingSenderId: "99764860737",
+    appId: "1:99764860737:web:e0450a5ef9e0954a6ad3c0"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+</script>
+
+<script>
+/* ===================== 저장소 (Firebase RTDB) ===================== */
+const Store = {
+  code: null, ref: null, _ready: false,
+  data: { cars: [], fuel: [], service: [], reminders: [] },
+  init(code, onReady) {
+    this.code = code; this._ready = false;
+    this.ref = db.ref('vehicle/' + code);
+    this.ref.on('value', snap => {
+      const val = snap.val();
+      if (val && (val.cars || val.fuel || val.service || val.reminders)) this.data = val;
+      else { this.data = this._seed(); this.ref.set(this.data); }
+      this.data.cars ||= []; this.data.fuel ||= []; this.data.service ||= []; this.data.reminders ||= [];
+      if (!this._ready) { this._ready = true; onReady && onReady(); } else { render(); }
+    }, () => toast('연결 오류 😢 인터넷을 확인해주세요'));
+  },
+  _seed() {
+    return {
+      cars: [{ id:'c1', name:'내 차', plate:'', memo:'' }],
+      fuel: [], service: [],
+      reminders: [
+        { id:'r1', carId:'c1', kind:'date', name:'자동차 보험 만기', dueDate:'', memo:'' },
+        { id:'r2', carId:'c1', kind:'date', name:'정기검사', dueDate:'', memo:'' },
+        { id:'r3', carId:'c1', kind:'km', name:'엔진오일 교체', intervalKm:10000, lastOdo:0, memo:'' }
+      ]
+    };
+  },
+  save() { if (this.ref) this.ref.set(this.data); },
+  uid(p) { return (p||'v') + Math.random().toString(36).slice(2, 9) + (this.data.fuel.length + this.data.service.length); },
+};
+
+/* ===================== 유틸 ===================== */
+function $(sel, root=document) { return root.querySelector(sel); }
+function $all(sel, root=document) { return [...root.querySelectorAll(sel)]; }
+function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function toISO(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
+function todayDate(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+function parseDate(s){ if(!s) return null; const [y,m,d]=s.split('-').map(Number); const dt=new Date(y,m-1,d); dt.setHours(0,0,0,0); return isNaN(dt)?null:dt; }
+const WD=['일','월','화','수','목','금','토'];
+function fmtKDate(s){ const d=parseDate(s); if(!d) return ''; return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}(${WD[d.getDay()]})`; }
+function daysUntil(s){ const d=parseDate(s); if(!d) return null; return Math.round((d-todayDate())/86400000); }
+function won(n){ return (Number(n)||0).toLocaleString('ko-KR') + '원'; }
+function comma(n){ return (Number(n)||0).toLocaleString('ko-KR'); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1800); }
+
+/* ===================== 차량 선택 ===================== */
+let curCarId = null;
+function curCar() { return Store.data.cars.find(c => c.id === curCarId) || Store.data.cars[0] || null; }
+function ensureCar() { if (!curCarId || !Store.data.cars.find(c=>c.id===curCarId)) curCarId = Store.data.cars[0]?.id || null; }
+function carFuel(id) { return Store.data.fuel.filter(f => f.carId === id).sort((a,b)=> (a.odo-b.odo) || a.date.localeCompare(b.date)); }
+function carService(id) { return Store.data.service.filter(s => s.carId === id).sort((a,b)=> b.date.localeCompare(a.date)); }
+function latestOdo(id) {
+  let m = 0;
+  Store.data.fuel.filter(f=>f.carId===id).forEach(f=> m=Math.max(m, Number(f.odo)||0));
+  Store.data.service.filter(s=>s.carId===id).forEach(s=> m=Math.max(m, Number(s.odo)||0));
+  Store.data.reminders.filter(r=>r.carId===id&&r.kind==='km').forEach(r=> m=Math.max(m, Number(r.lastOdo)||0));
+  return m;
+}
+
+/* ===================== 시작/코드 ===================== */
+function enterSpace() {
+  const code = $('#codeInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if (!code) { toast('코드를 입력해주세요 🐱'); return; }
+  localStorage.setItem('kimzipsa_code', code);
+  $('#startScreen').style.display='none'; $('#app').style.display='';
+  $('#codeChip').textContent = '😺 ' + code;
+  toast('연결 중... 🚗');
+  Store.init(code, () => { ensureCar(); switchTab('summary'); });
+}
+function changeCode() {
+  if (confirm('홈으로 가서 다른 코드로 바꿀까요?')) { localStorage.removeItem('kimzipsa_code'); location.href='index.html'; }
+}
+
+/* ===================== 탭 ===================== */
+let currentTab = 'summary';
+function switchTab(tab) {
+  currentTab = tab;
+  $all('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ['summary','fuel','service','due','settings'].forEach(t => $('#tab-'+t).style.display=(t===tab)?'':'none');
+  $('#fab').style.display = (tab==='summary'||tab==='settings') ? 'none' : '';
+  render();
+}
+function render() {
+  ensureCar();
+  if (currentTab === 'summary') renderSummary();
+  else if (currentTab === 'fuel') renderFuel();
+  else if (currentTab === 'service') renderService();
+  else if (currentTab === 'due') renderDue();
+  else if (currentTab === 'settings') renderSettings();
+}
+function onFab() {
+  if (currentTab === 'fuel') openFuelModal();
+  else if (currentTab === 'service') openServiceModal();
+  else if (currentTab === 'due') openReminderModal();
+}
+function carSelector() {
+  if (Store.data.cars.length <= 1) {
+    const c = curCar();
+    return el(`<div class="car-select"><div style="font-weight:800;font-size:16px">🚗 ${esc(c?c.name:'차량 없음')}</div></div>`);
+  }
+  const wrap = el(`<div class="car-select">🚗 <select id="carSel"></select></div>`);
+  const sel = $('select', wrap);
+  Store.data.cars.forEach(c => sel.appendChild(el(`<option value="${c.id}" ${c.id===curCarId?'selected':''}>${esc(c.name)}</option>`)));
+  sel.addEventListener('change', () => { curCarId = sel.value; render(); });
+  return wrap;
+}
+
+/* ===================== 연비 계산 ===================== */
+// 완전 주유(full-to-full) 가정: 이번 주유의 (이번주행거리 - 직전주행거리) / 이번 주유량
+function fuelWithEco(id) {
+  const list = carFuel(id);
+  return list.map((f, i) => {
+    const prev = list[i-1];
+    let eco = null, dist = null;
+    if (prev && Number(f.odo) > Number(prev.odo) && Number(f.amount) > 0) {
+      dist = Number(f.odo) - Number(prev.odo);
+      eco = dist / Number(f.amount);
+    }
+    return { ...f, eco, dist };
+  });
+}
+function avgEco(id) {
+  const ecos = fuelWithEco(id).map(f=>f.eco).filter(e=>e!=null);
+  if (!ecos.length) return null;
+  return ecos.reduce((a,b)=>a+b,0)/ecos.length;
+}
+
+/* ===================== 요약 ===================== */
+function renderSummary() {
+  const root = $('#tab-summary'); root.innerHTML = '';
+  if (!curCar()) { root.appendChild(el(`<div class="empty">🚗 등록된 차가 없어요.<br>설정에서 차량을 추가하세요.</div>`)); return; }
+  root.appendChild(carSelector());
+  const id = curCarId;
+  const odo = latestOdo(id);
+  const ae = avgEco(id);
+  const ecoList = fuelWithEco(id);
+  const lastEco = [...ecoList].reverse().find(f=>f.eco!=null);
+  const yr = todayDate().getFullYear();
+  const fuelCostYr = Store.data.fuel.filter(f=>f.carId===id && (f.date||'').startsWith(yr)).reduce((s,f)=>s+(Number(f.cost)||0),0);
+  const svcCostYr = Store.data.service.filter(s=>s.carId===id && (s.date||'').startsWith(yr)).reduce((s,v)=>s+(Number(v.cost)||0),0);
+
+  const stat = el(`<div class="stat-card"><h3>📊 현재 상태</h3>
+    <div class="kv">
+      <div class="box"><div class="n">${comma(odo)}</div><div class="l">현재 주행거리(km)</div></div>
+      <div class="box"><div class="n">${ae?ae.toFixed(1):'-'}</div><div class="l">평균 연비(km/L)</div></div>
+    </div>
+    <div class="kv" style="margin-top:10px">
+      <div class="box"><div class="n" style="font-size:18px">${lastEco?lastEco.eco.toFixed(1)+'km/L':'-'}</div><div class="l">최근 주유 연비</div></div>
+      <div class="box"><div class="n" style="font-size:18px">${comma(fuelCostYr+svcCostYr)}</div><div class="l">${yr}년 총 차량비용(원)</div></div>
+    </div></div>`);
+  root.appendChild(stat);
+
+  // 다가오는 만기
+  const dues = reminderStatuses(id).filter(r=>['over','soon'].includes(r.s.cls));
+  const dcard = el(`<div class="stat-card"><h3>📅 곧 챙길 것</h3></div>`);
+  if (dues.length === 0) dcard.appendChild(el(`<div class="muted" style="font-size:13.5px">임박한 만기/정비가 없어요 😺</div>`));
+  else dues.forEach(({r,s}) => dcard.appendChild(el(`<div class="list-card ${s.cls}" style="margin-bottom:6px">
+      <div class="top"><span class="nm">${esc(r.name)}</span><span class="spacer"></span><span class="status-pill ${s.pill}">${esc(s.label)}</span></div></div>`)));
+  root.appendChild(dcard);
+
+  root.appendChild(el(`<div class="muted" style="font-size:12.5px;text-align:center;margin-top:10px">⛽ 주유 ${carFuel(id).length}건 · 🔧 정비 ${carService(id).length}건</div>`));
+}
+
+/* ===================== 주유 ===================== */
+function renderFuel() {
+  const root = $('#tab-fuel'); root.innerHTML = '';
+  root.appendChild(carSelector());
+  const list = [...fuelWithEco(curCarId)].reverse();
+  if (!list.length) { root.appendChild(el(`<div class="empty">⛽ 주유 기록이 없어요.<br>＋ 로 추가하세요.</div>`)); return; }
+  for (const f of list) {
+    const card = el(`<div class="list-card click">
+      <div class="top"><span class="nm">${won(f.cost)}</span>
+        ${f.amount?`<span class="chip-cat">${esc(f.amount)}L</span>`:''}
+        <span class="spacer"></span>
+        ${f.eco!=null?`<span class="status-pill pill-ok">${f.eco.toFixed(1)} km/L</span>`:'<span class="muted" style="font-size:12px">연비 계산중</span>'}</div>
+      <div class="sub">📅 ${fmtKDate(f.date)} · 🛣️ ${comma(f.odo)}km${f.dist?` (+${comma(f.dist)}km)`:''}${f.station?` · ⛽ ${esc(f.station)}`:''}${f.by?` · ${esc(f.by)}`:''}</div>
+    </div>`);
+    card.addEventListener('click', () => openFuelModal(f.id));
+    root.appendChild(card);
+  }
+}
+function openFuelModal(id=null) {
+  const ed = id ? Store.data.fuel.find(f=>f.id===id) : null;
+  const f = ed || { date: toISO(todayDate()), odo:'', amount:'', cost:'', station:'', by:'', memo:'' };
+  const m = el(`<div class="modal-bg"><div class="modal">
+    <h2>${ed?'⛽ 주유 수정':'⛽ 주유 추가'}</h2>
+    <div class="field-row">
+      <div class="field"><label>📅 날짜</label><input id="f_date" type="date" value="${esc(f.date)}" /></div>
+      <div class="field"><label>🛣️ 주행거리(km, 총)</label><input id="f_odo" type="number" inputmode="numeric" value="${esc(f.odo)}" placeholder="예: 45200" /></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>⛽ 주유량(L)</label><input id="f_amount" type="number" inputmode="decimal" value="${esc(f.amount)}" placeholder="예: 35" /></div>
+      <div class="field"><label>💰 금액(원)</label><input id="f_cost" type="number" inputmode="numeric" value="${esc(f.cost)}" placeholder="예: 60000" /></div>
+    </div>
+    <div class="field"><label>⛽ 주유소 (선택)</label><input id="f_station" value="${esc(f.station)}" placeholder="예: GS칼텍스 OO점" /></div>
+    <div class="field"><label>📝 메모 (선택)</label><input id="f_memo" value="${esc(f.memo)}" /></div>
+    <div class="actions">
+      ${ed?`<button class="btn danger" onclick="delFuel('${id}')">🗑️</button>`:''}
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="saveFuel('${id||''}')">💾 저장</button>
+    </div></div></div>`);
+  showModal(m);
+}
+function saveFuel(id) {
+  const fields = { carId: curCarId, date: $('#f_date').value || toISO(todayDate()),
+    odo: Number($('#f_odo').value)||0, amount: Number($('#f_amount').value)||0,
+    cost: Number($('#f_cost').value)||0, station: $('#f_station').value.trim(),
+    by: '', memo: $('#f_memo').value.trim() };
+  if (!fields.odo) { toast('주행거리를 입력해주세요'); return; }
+  if (id) Object.assign(Store.data.fuel.find(f=>f.id===id), fields);
+  else Store.data.fuel.push({ id: Store.uid('f'), ...fields });
+  Store.save(); closeModal(); toast('💾 저장!'); render();
+}
+function delFuel(id) { if(confirm('이 주유 기록을 삭제할까요?')){ Store.data.fuel=Store.data.fuel.filter(f=>f.id!==id); Store.save(); closeModal(); render(); } }
+
+/* ===================== 정비 ===================== */
+function renderService() {
+  const root = $('#tab-service'); root.innerHTML = '';
+  root.appendChild(carSelector());
+  const list = carService(curCarId);
+  if (!list.length) { root.appendChild(el(`<div class="empty">🔧 정비 기록이 없어요.<br>＋ 로 추가하세요.</div>`)); return; }
+  for (const s of list) {
+    const card = el(`<div class="list-card click">
+      <div class="top"><span class="nm">${esc(s.title)}</span><span class="spacer"></span><span class="status-pill pill-ok">${won(s.cost)}</span></div>
+      <div class="sub">📅 ${fmtKDate(s.date)}${s.odo?` · 🛣️ ${comma(s.odo)}km`:''}${s.shop?` · 🔧 ${esc(s.shop)}`:''}${s.memo?` · ${esc(s.memo)}`:''}</div>
+    </div>`);
+    card.addEventListener('click', () => openServiceModal(s.id));
+    root.appendChild(card);
+  }
+}
+function openServiceModal(id=null) {
+  const ed = id ? Store.data.service.find(s=>s.id===id) : null;
+  const s = ed || { date: toISO(todayDate()), odo:'', title:'', cost:'', shop:'', memo:'' };
+  const m = el(`<div class="modal-bg"><div class="modal">
+    <h2>${ed?'🔧 정비 수정':'🔧 정비 추가'}</h2>
+    <div class="field"><label>🔧 내용 *</label><input id="s_title" value="${esc(s.title)}" placeholder="예: 엔진오일 교체, 타이어 교체" /></div>
+    <div class="field-row">
+      <div class="field"><label>📅 날짜</label><input id="s_date" type="date" value="${esc(s.date)}" /></div>
+      <div class="field"><label>🛣️ 주행거리(km)</label><input id="s_odo" type="number" inputmode="numeric" value="${esc(s.odo)}" /></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>💰 비용(원)</label><input id="s_cost" type="number" inputmode="numeric" value="${esc(s.cost)}" /></div>
+      <div class="field"><label>🔧 정비소 (선택)</label><input id="s_shop" value="${esc(s.shop)}" /></div>
+    </div>
+    <div class="field"><label>📝 메모 (선택)</label><input id="s_memo" value="${esc(s.memo)}" /></div>
+    <div class="actions">
+      ${ed?`<button class="btn danger" onclick="delService('${id}')">🗑️</button>`:''}
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="saveService('${id||''}')">💾 저장</button>
+    </div></div></div>`);
+  showModal(m);
+}
+function saveService(id) {
+  const title = $('#s_title').value.trim();
+  if (!title) { toast('정비 내용을 입력해주세요'); return; }
+  const fields = { carId: curCarId, title, date: $('#s_date').value || toISO(todayDate()),
+    odo: Number($('#s_odo').value)||0, cost: Number($('#s_cost').value)||0,
+    shop: $('#s_shop').value.trim(), memo: $('#s_memo').value.trim() };
+  if (id) Object.assign(Store.data.service.find(s=>s.id===id), fields);
+  else Store.data.service.push({ id: Store.uid('s'), ...fields });
+  Store.save(); closeModal(); toast('💾 저장!'); render();
+}
+function delService(id) { if(confirm('이 정비 기록을 삭제할까요?')){ Store.data.service=Store.data.service.filter(s=>s.id!==id); Store.save(); closeModal(); render(); } }
+
+/* ===================== 만기/주기 알림 ===================== */
+function reminderStatuses(carId) {
+  const odo = latestOdo(carId);
+  return Store.data.reminders.filter(r => r.carId === carId).map(r => {
+    let s;
+    if (r.kind === 'date') {
+      if (!r.dueDate) s = { cls:'todo', pill:'pill-todo', label:'🐾 날짜 설정', sort:-0.5 };
+      else { const du = daysUntil(r.dueDate);
+        if (du < 0) s = { cls:'over', pill:'pill-over', label:`🔴 ${-du}일 지남`, sort:du };
+        else if (du <= 30) s = { cls:'soon', pill:'pill-soon', label:`🟠 D-${du}`, sort:du };
+        else s = { cls:'', pill:'pill-ok', label:`🟢 D-${du}`, sort:du };
+      }
+    } else { // km
+      const remain = (Number(r.lastOdo)||0) + (Number(r.intervalKm)||0) - odo;
+      if (!r.intervalKm) s = { cls:'todo', pill:'pill-todo', label:'🐾 설정 필요', sort:-0.5 };
+      else if (remain <= 0) s = { cls:'over', pill:'pill-over', label:`🔴 ${comma(-remain)}km 초과`, sort:remain };
+      else if (remain <= 1000) s = { cls:'soon', pill:'pill-soon', label:`🟠 ${comma(remain)}km 남음`, sort:remain };
+      else s = { cls:'', pill:'pill-ok', label:`🟢 ${comma(remain)}km 남음`, sort:remain };
+    }
+    return { r, s };
+  }).sort((a,b)=>a.s.sort-b.s.sort);
+}
+function renderDue() {
+  const root = $('#tab-due'); root.innerHTML = '';
+  root.appendChild(carSelector());
+  const list = reminderStatuses(curCarId);
+  if (!list.length) { root.appendChild(el(`<div class="empty">📅 등록된 만기/주기가 없어요.<br>＋ 로 추가하세요.</div>`)); return; }
+  for (const { r, s } of list) {
+    const detail = r.kind==='date'
+      ? (r.dueDate ? `만기일 ${fmtKDate(r.dueDate)}` : '날짜 미설정')
+      : `${comma(r.intervalKm)}km 주기 · 마지막 ${comma(r.lastOdo)}km`;
+    const card = el(`<div class="list-card click ${s.cls}">
+      <div class="top"><span class="nm">${esc(r.name)}</span>
+        <span class="chip-cat">${r.kind==='date'?'📅 날짜':'🛣️ 주행거리'}</span>
+        <span class="spacer"></span><span class="status-pill ${s.pill}">${esc(s.label)}</span></div>
+      <div class="sub">${detail}${r.memo?` · 📝 ${esc(r.memo)}`:''}</div>
+    </div>`);
+    card.addEventListener('click', () => openReminderModal(r.id));
+    root.appendChild(card);
+  }
+}
+function openReminderModal(id=null) {
+  const ed = id ? Store.data.reminders.find(r=>r.id===id) : null;
+  const r = ed || { kind:'date', name:'', dueDate:'', intervalKm:10000, lastOdo: latestOdo(curCarId), memo:'' };
+  const m = el(`<div class="modal-bg"><div class="modal">
+    <h2>${ed?'📅 만기/주기 수정':'📅 만기/주기 추가'}</h2>
+    <div class="field"><label>이름 *</label><input id="r_name" value="${esc(r.name)}" placeholder="예: 자동차 보험, 엔진오일" /></div>
+    <div class="field"><label>종류</label>
+      <select id="r_kind" onchange="onRKind()">
+        <option value="date" ${r.kind==='date'?'selected':''}>📅 날짜 만기 (보험·검사 등)</option>
+        <option value="km" ${r.kind==='km'?'selected':''}>🛣️ 주행거리 주기 (엔진오일 등)</option>
+      </select></div>
+    <div id="rDateBox" class="field" style="${r.kind==='km'?'display:none':''}">
+      <label>만기일</label><input id="r_due" type="date" value="${esc(r.dueDate)}" /></div>
+    <div id="rKmBox" style="${r.kind==='km'?'':'display:none'}">
+      <div class="field-row">
+        <div class="field"><label>교체 주기(km)</label><input id="r_interval" type="number" inputmode="numeric" value="${esc(r.intervalKm)}" /></div>
+        <div class="field"><label>마지막 교체 주행거리(km)</label><input id="r_lastodo" type="number" inputmode="numeric" value="${esc(r.lastOdo)}" /></div>
+      </div></div>
+    <div class="field"><label>📝 메모 (선택)</label><input id="r_memo" value="${esc(r.memo)}" /></div>
+    <div class="actions">
+      ${ed?`<button class="btn danger" onclick="delReminder('${id}')">🗑️</button>`:''}
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="saveReminder('${id||''}')">💾 저장</button>
+    </div></div></div>`);
+  showModal(m);
+}
+function onRKind() {
+  const k = $('#r_kind').value;
+  $('#rDateBox').style.display = k==='km'?'none':'';
+  $('#rKmBox').style.display = k==='km'?'':'none';
+}
+function saveReminder(id) {
+  const name = $('#r_name').value.trim();
+  if (!name) { toast('이름을 입력해주세요'); return; }
+  const kind = $('#r_kind').value;
+  const fields = kind==='date'
+    ? { carId:curCarId, kind, name, dueDate: $('#r_due').value, memo: $('#r_memo').value.trim() }
+    : { carId:curCarId, kind, name, intervalKm: Number($('#r_interval').value)||0, lastOdo: Number($('#r_lastodo').value)||0, memo: $('#r_memo').value.trim() };
+  if (id) { const r = Store.data.reminders.find(x=>x.id===id); Object.keys(r).forEach(k=>{ if(!(k in fields) && k!=='id') delete r[k]; }); Object.assign(r, fields); }
+  else Store.data.reminders.push({ id: Store.uid('r'), ...fields });
+  Store.save(); closeModal(); toast('💾 저장!'); render();
+}
+function delReminder(id) { if(confirm('이 항목을 삭제할까요?')){ Store.data.reminders=Store.data.reminders.filter(r=>r.id!==id); Store.save(); closeModal(); render(); } }
+
+/* ===================== 설정 ===================== */
+function renderSettings() {
+  const root = $('#tab-settings'); root.innerHTML = '';
+  const cSec = el(`<div><div class="sec-title">🚗 내 차량</div></div>`);
+  Store.data.cars.forEach(c => {
+    const card = el(`<div class="list-card click">
+      <div class="top"><span class="nm">${esc(c.name)}</span>${c.plate?`<span class="chip-cat">${esc(c.plate)}</span>`:''}<span class="spacer"></span><span class="muted">✏️</span></div>
+      ${c.memo?`<div class="sub">${esc(c.memo)}</div>`:''}</div>`);
+    card.addEventListener('click', () => openCarModal(c.id));
+    cSec.appendChild(card);
+  });
+  const addC = el(`<button class="btn primary sm" style="margin-top:4px">＋ 차량 추가</button>`);
+  addC.addEventListener('click', () => openCarModal());
+  cSec.appendChild(addC);
+  root.appendChild(cSec);
+
+  const bSec = el(`<div style="margin-top:24px"><div class="sec-title">💾 백업</div></div>`);
+  const exp = el(`<button class="btn" style="margin-right:8px">⬇️ 내보내기</button>`); exp.addEventListener('click', exportBackup);
+  const imp = el(`<label class="btn" style="display:inline-block">⬆️ 불러오기<input type="file" accept="application/json" style="display:none"></label>`);
+  imp.querySelector('input').addEventListener('change', importBackup);
+  bSec.append(exp, imp);
+  root.appendChild(bSec);
+  root.appendChild(el(`<div class="muted" style="margin-top:24px;font-size:12.5px">차량 ${Store.data.cars.length}대 · 주유 ${Store.data.fuel.length}건 · 정비 ${Store.data.service.length}건 · 코드 ${esc(Store.code)}</div>`));
+}
+function openCarModal(id=null) {
+  const ed = id ? Store.data.cars.find(c=>c.id===id) : null;
+  const c = ed || { name:'', plate:'', memo:'' };
+  const m = el(`<div class="modal-bg"><div class="modal">
+    <h2>${ed?'🚗 차량 수정':'🚗 차량 추가'}</h2>
+    <div class="field"><label>차 이름 *</label><input id="c_name" value="${esc(c.name)}" placeholder="예: 쏘렌토, 아내차" /></div>
+    <div class="field"><label>번호판 (선택)</label><input id="c_plate" value="${esc(c.plate)}" placeholder="예: 12가 3456" /></div>
+    <div class="field"><label>메모 (선택)</label><input id="c_memo" value="${esc(c.memo)}" /></div>
+    <div class="actions">
+      ${ed && Store.data.cars.length>1?`<button class="btn danger" onclick="delCar('${id}')">🗑️</button>`:''}
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="saveCar('${id||''}')">💾 저장</button>
+    </div></div></div>`);
+  showModal(m);
+}
+function saveCar(id) {
+  const name = $('#c_name').value.trim();
+  if (!name) { toast('차 이름을 입력해주세요'); return; }
+  const fields = { name, plate: $('#c_plate').value.trim(), memo: $('#c_memo').value.trim() };
+  if (id) Object.assign(Store.data.cars.find(c=>c.id===id), fields);
+  else { const nc = { id: Store.uid('c'), ...fields }; Store.data.cars.push(nc); curCarId = nc.id; }
+  Store.save(); closeModal(); toast('💾 저장!'); render();
+}
+function delCar(id) {
+  if (Store.data.cars.length<=1) { toast('차량은 최소 1대 필요해요'); return; }
+  if (!confirm('이 차량과 모든 기록을 삭제할까요?')) return;
+  Store.data.cars = Store.data.cars.filter(c=>c.id!==id);
+  Store.data.fuel = Store.data.fuel.filter(f=>f.carId!==id);
+  Store.data.service = Store.data.service.filter(s=>s.carId!==id);
+  Store.data.reminders = Store.data.reminders.filter(r=>r.carId!==id);
+  curCarId = Store.data.cars[0].id;
+  Store.save(); closeModal(); render();
+}
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(Store.data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); const d = new Date();
+  a.href = url; a.download = `차량백업_${Store.code}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`;
+  a.click(); URL.revokeObjectURL(url); toast('💾 백업 저장!');
+}
+function importBackup(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  if (!confirm('현재 데이터를 덮어쓸까요?')) { ev.target.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = e => { try { const d = JSON.parse(e.target.result);
+    Store.data = { cars:d.cars||[], fuel:d.fuel||[], service:d.service||[], reminders:d.reminders||[] };
+    ensureCar(); Store.save(); render(); toast('✅ 불러오기 완료');
+  } catch(err){ toast('파일을 읽지 못했어요 😢'); } };
+  reader.readAsText(file);
+}
+
+/* ===================== 모달 ===================== */
+function showModal(node){ closeModal(); node.addEventListener('click', e=>{ if(e.target===node) closeModal(); }); $('#modalRoot').appendChild(node); }
+function closeModal(){ $('#modalRoot').innerHTML=''; }
+
+/* ===================== 부팅 ===================== */
+(function boot(){
+  const code = localStorage.getItem('kimzipsa_code');
+  if (code) { $('#codeInput').value = code; enterSpace(); }
+})();
+</script>
+</body>
+</html>

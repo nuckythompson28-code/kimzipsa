@@ -11,35 +11,88 @@
     min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
   .logo { font-size: 72px; line-height: 1; }
   h1 { font-size: 30px; margin: 10px 0 2px; font-weight: 800; }
-  .tag { color: #7c5cff; font-weight: 700; margin: 0 0 30px; }
-  .cards { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 380px; }
+  .tag { color: #7c5cff; font-weight: 700; margin: 0 0 26px; }
+  .wrap { width: 100%; max-width: 400px; }
+  .cards { display: flex; flex-direction: column; gap: 14px; }
   a.card { text-decoration: none; color: inherit; background: #fff; border: 1px solid #e7e4f0; border-radius: 18px;
-    padding: 22px; box-shadow: 0 4px 18px rgba(40,30,80,.08); display: flex; align-items: center; gap: 16px;
+    padding: 20px; box-shadow: 0 4px 18px rgba(40,30,80,.08); display: flex; align-items: center; gap: 16px;
     transition: transform .12s, box-shadow .12s; }
   a.card:active { transform: scale(.98); }
   a.card:hover { box-shadow: 0 8px 26px rgba(40,30,80,.14); transform: translateY(-2px); }
-  .card .emoji { font-size: 42px; }
-  .card .t { font-size: 19px; font-weight: 800; }
-  .card .d { font-size: 13.5px; color: #8a85a3; margin-top: 3px; }
-  .foot { margin-top: 30px; font-size: 12.5px; color: #8a85a3; text-align: center; line-height: 1.6; }
+  .card .emoji { font-size: 40px; }
+  .card .t { font-size: 18px; font-weight: 800; }
+  .card .d { font-size: 13px; color: #8a85a3; margin-top: 3px; }
+  input { width: 100%; padding: 13px; border: 1px solid #e7e4f0; border-radius: 12px; text-align: center; font-size: 16px; }
+  .btn { width: 100%; padding: 13px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer;
+    border: 1px solid #e7e4f0; background: #fff; margin-top: 10px; }
+  .btn.primary { background: #7c5cff; border-color: #7c5cff; color: #fff; }
+  .code-line { text-align: center; margin-top: 22px; font-size: 13px; color: #8a85a3; }
+  .code-line a { color: #7c5cff; font-weight: 700; text-decoration: none; cursor: pointer; }
+  .desc { color:#8a85a3; font-size: 14px; text-align:center; margin: 0 0 20px; line-height:1.6; }
+  .foot { margin-top: 26px; font-size: 12.5px; color: #8a85a3; text-align: center; line-height: 1.6; }
 </style>
 </head>
 <body>
   <div class="logo">🐱</div>
   <h1>김집사</h1>
   <p class="tag">🏠 우리집 살림 매니저</p>
-  <div class="cards">
-    <a class="card" href="butler.html">
-      <span class="emoji">🧹</span>
-      <span><div class="t">김집사 — 집안일</div>
-        <div class="d">청소·점검·교체 챙기기 + 누가 했나 통계</div></span>
-    </a>
-    <a class="card" href="storage.html">
-      <span class="emoji">📦</span>
-      <span><div class="t">창고 — 재고 관리</div>
-        <div class="d">팬트리·박스·선반 물품 어디 있나 찾기</div></span>
-    </a>
+
+  <div class="wrap">
+    <!-- 코드 입력 화면 -->
+    <div id="codeView" style="display:none">
+      <p class="desc">가족 공유코드를 입력하세요 😺<br>같은 코드를 쓰면 가족끼리 실시간으로 공유돼요</p>
+      <input id="codeInput" placeholder="예: kim-house-7392" autocomplete="off" />
+      <button class="btn primary" onclick="enter()">🚪 입장하기</button>
+      <button class="btn" onclick="suggest()">✨ 새 코드 만들기</button>
+    </div>
+
+    <!-- 모듈 선택 화면 -->
+    <div id="hubView" style="display:none">
+      <div class="cards">
+        <a class="card" href="butler.html">
+          <span class="emoji">🧹</span>
+          <span><div class="t">집안일</div><div class="d">청소·점검 챙기기 + 누가 했나 통계</div></span>
+        </a>
+        <a class="card" href="storage.html">
+          <span class="emoji">📦</span>
+          <span><div class="t">창고</div><div class="d">팬트리·박스·선반 물품 어디 있나 찾기</div></span>
+        </a>
+        <a class="card" href="vehicle.html">
+          <span class="emoji">🚗</span>
+          <span><div class="t">차량</div><div class="d">주유·연비·정비·보험 만기 관리</div></span>
+        </a>
+      </div>
+      <div class="code-line">😺 우리 가족 코드: <b id="curCode"></b> · <a onclick="changeCode()">변경</a></div>
+    </div>
   </div>
-  <p class="foot">😺 가족끼리 같은 코드를 쓰면 실시간으로 공유돼요<br>홈 화면에 추가하면 앱처럼 쓸 수 있어요</p>
+
+  <p class="foot">홈 화면에 추가하면 앱처럼 쓸 수 있어요 📲</p>
+
+<script>
+  function get(){ return localStorage.getItem('kimzipsa_code'); }
+  function show() {
+    const code = get();
+    document.getElementById('codeView').style.display = code ? 'none' : '';
+    document.getElementById('hubView').style.display = code ? '' : 'none';
+    if (code) document.getElementById('curCode').textContent = code;
+    else setTimeout(()=>document.getElementById('codeInput').focus(), 100);
+  }
+  function enter() {
+    const code = document.getElementById('codeInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+    if (!code) { alert('코드를 입력해주세요 🐱'); return; }
+    localStorage.setItem('kimzipsa_code', code);
+    show();
+  }
+  function suggest() {
+    const a = ['fox','bear','owl','deer','seal','duck','cat','dog'];
+    document.getElementById('codeInput').value = `house-${a[Math.floor(Math.random()*a.length)]}-${Math.floor(1000+Math.random()*9000)}`;
+  }
+  function changeCode() {
+    if (confirm('다른 가족 코드로 바꿀까요? (기존 데이터는 그 코드에 그대로 보관돼요)')) {
+      localStorage.removeItem('kimzipsa_code'); show();
+    }
+  }
+  show();
+</script>
 </body>
 </html>
