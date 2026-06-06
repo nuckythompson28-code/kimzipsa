@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🍳 김집사 — 레시피</title>
+<style>
+  :root { --bg:#f5f4fb; --card:#fff; --line:#e7e4f0; --text:#2a2440; --muted:#8a85a3; --primary:#7c5cff; --primary-dark:#6344e0; --danger:#e0483b; --ok:#1f9d57; --gold:#e8920c; --shadow:0 1px 3px rgba(40,30,80,.08),0 4px 16px rgba(40,30,80,.06); }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","맑은 고딕",sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.5; }
+  button { font-family:inherit; cursor:pointer; } input,select,textarea { font-family:inherit; font-size:15px; }
+  .modbar { display:flex; gap:5px; padding:7px 10px; background:#2a2440; overflow-x:auto; }
+  .modbar a { flex:0 0 auto; text-decoration:none; color:#cbc5e8; font-weight:700; font-size:13px; padding:6px 12px; border-radius:999px; white-space:nowrap; }
+  .modbar a.on { background:#7c5cff; color:#fff; }
+  header { position:sticky; top:0; z-index:50; background:var(--card); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:9px; padding:11px 16px; }
+  header h1 { font-size:17px; margin:0; font-weight:800; }
+  header .code-chip { margin-left:auto; font-size:12px; color:var(--muted); background:var(--bg); border:1px solid var(--line); padding:4px 9px; border-radius:999px; cursor:pointer; }
+  main { padding:14px; max-width:760px; margin:0 auto; padding-bottom:92px; }
+  .muted { color:var(--muted); }
+  .btn { border:1px solid var(--line); background:var(--card); color:var(--text); padding:9px 14px; border-radius:10px; font-size:14px; font-weight:700; }
+  .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.ok { background:var(--ok); border-color:var(--ok); color:#fff; }
+  .btn.sm { padding:6px 11px; font-size:13px; }
+  .btn.danger { color:var(--danger); border-color:#f1c4bf; }
+  .empty { text-align:center; color:var(--muted); padding:34px 10px; font-size:14px; }
+  .searchbar { position:sticky; top:54px; z-index:30; background:var(--bg); padding:10px 0; display:flex; gap:8px; }
+  .searchbar input { flex:1; padding:11px; border:1px solid var(--line); border-radius:10px; }
+  .searchbar button { padding:0 14px; }
+  .rcard { background:var(--card); border:1px solid var(--line); border-radius:13px; padding:13px 15px; margin-bottom:9px; box-shadow:var(--shadow); cursor:pointer; display:flex; align-items:center; gap:10px; }
+  .rcard .nm { font-weight:800; font-size:15.5px; }
+  .rcard .tags { font-size:12px; color:var(--muted); margin-top:2px; }
+  .rcard .fav { font-size:20px; }
+  .modal-bg { position:fixed; inset:0; background:rgba(30,22,60,.45); z-index:100; display:flex; align-items:flex-end; justify-content:center; }
+  @media (min-width:600px){ .modal-bg{ align-items:center; } }
+  .modal { background:var(--card); width:100%; max-width:520px; border-radius:18px 18px 0 0; padding:18px; max-height:92vh; overflow-y:auto; }
+  @media (min-width:600px){ .modal{ border-radius:18px; } }
+  .modal h2 { margin:0 0 6px; font-size:19px; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; font-weight:700; }
+  .field input,.field textarea { width:100%; padding:10px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .field textarea { min-height:90px; resize:vertical; }
+  .chk { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; } .chk input { width:auto; }
+  .modal .actions { display:flex; gap:8px; margin-top:8px; } .modal .actions .btn { flex:1; }
+  .sec { margin:14px 0 6px; font-weight:800; font-size:14px; }
+  .ing-list { list-style:none; padding:0; margin:0; }
+  .ing-list li { padding:7px 0; border-bottom:1px solid #f1eef8; font-size:14.5px; }
+  .steps { padding-left:20px; margin:0; } .steps li { padding:5px 0; font-size:14.5px; }
+  .fab { position:fixed; right:18px; bottom:18px; z-index:60; background:var(--primary); color:#fff; border:none; width:58px; height:58px; border-radius:50%; font-size:30px; line-height:1; box-shadow:0 6px 18px rgba(124,92,255,.45); }
+  .start-wrap { max-width:420px; margin:7vh auto; padding:24px; text-align:center; }
+  .start-wrap .logo { font-size:56px; } .start-wrap h1 { font-size:24px; margin:6px 0 2px; font-weight:800; }
+  .start-wrap p { color:var(--muted); margin:0 0 22px; font-size:14px; }
+  .start-wrap input { width:100%; padding:13px; border:1px solid var(--line); border-radius:12px; text-align:center; font-size:16px; }
+  .start-wrap .btn { width:100%; margin-top:10px; }
+  .toast { position:fixed; bottom:92px; left:50%; transform:translateX(-50%); background:#2a2440; color:#fff; padding:11px 20px; border-radius:999px; font-size:14px; z-index:200; opacity:0; transition:opacity .2s; pointer-events:none; font-weight:600; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div id="startScreen" class="start-wrap">
+  <div class="logo">🍳</div><h1>김집사 — 레시피</h1>
+  <p>가족 공유코드를 입력하세요 😺</p>
+  <input id="codeInput" placeholder="예: kim-house-7392" autocomplete="off" />
+  <button class="btn primary" onclick="enterSpace()">🚪 입장하기</button>
+</div>
+<div id="app" style="display:none">
+  <div class="modbar">
+    <a href="index.html">🏠 홈</a><a href="butler.html">🧹 집안일</a><a href="storage.html">📦 창고</a>
+    <a href="vehicle.html">🚗 차량</a><a href="schedule.html">📅 일정</a><a href="shopping.html">🛒 장보기</a>
+    <a href="fines.html">💸 벌금</a><a href="info.html">🏠 정보</a><a href="recipe.html" class="on">🍳 레시피</a>
+  </div>
+  <header><span style="font-size:22px">🍳</span><h1>레시피</h1>
+    <span class="code-chip" id="codeChip" onclick="changeCode()" title="코드 변경"></span></header>
+  <main>
+    <div class="searchbar"><input id="q" placeholder="🔎 레시피 검색" />
+      <button class="btn" id="favBtn" onclick="toggleFav()">⭐</button></div>
+    <div id="list"></div>
+  </main>
+  <button class="fab" onclick="openEdit()" title="레시피 추가">＋</button>
+</div>
+<div id="modalRoot"></div><div id="toast" class="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = { apiKey:"AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8", authDomain:"kimzipsa-bfe26.firebaseapp.com",
+    databaseURL:"https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"kimzipsa-bfe26",
+    storageBucket:"kimzipsa-bfe26.firebasestorage.app", messagingSenderId:"99764860737", appId:"1:99764860737:web:e0450a5ef9e0954a6ad3c0" };
+  firebase.initializeApp(firebaseConfig); const db = firebase.database();
+</script>
+<script>
+const Store = {
+  code:null, ref:null, _ready:false, data:{ items:[] },
+  init(code,onReady){ this.code=code; this._ready=false; this.ref=db.ref('recipe/'+code);
+    this.ref.on('value', snap=>{ const v=snap.val()||{}; this.data=v; this.data.items||=[];
+      if(!this._ready){ this._ready=true; onReady&&onReady(); } else render();
+    }, ()=>toast('연결 오류 😢 인터넷을 확인해주세요')); },
+  save(){ if(this.ref) this.ref.set(this.data); },
+  uid(){ return 'r'+Math.random().toString(36).slice(2,10); },
+};
+function $(s,r=document){return r.querySelector(s);} function el(h){const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstElementChild;}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function lines(s){ return String(s||'').split('\n').map(x=>x.trim()).filter(Boolean); }
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),1700);}
+
+function enterSpace(){ const code=$('#codeInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if(!code){toast('코드를 입력해주세요 🐱');return;}
+  localStorage.setItem('kimzipsa_code',code);
+  $('#startScreen').style.display='none'; $('#app').style.display='';
+  $('#codeChip').textContent='😺 '+code;
+  $('#q').addEventListener('input',e=>{ query=e.target.value; render(); });
+  toast('연결 중... 🍳'); Store.init(code, ()=>render()); }
+function changeCode(){ if(confirm('홈으로 가서 다른 코드로 바꿀까요?')){ localStorage.removeItem('kimzipsa_code'); location.href='index.html'; } }
+
+let query='', favOnly=false;
+function toggleFav(){ favOnly=!favOnly; $('#favBtn').classList.toggle('primary',favOnly); render(); }
+function render(){
+  const root=$('#list'); root.innerHTML='';
+  const q=query.trim().toLowerCase();
+  let items=Store.data.items.filter(r=> (!favOnly||r.fav) &&
+    (!q || (r.name||'').toLowerCase().includes(q) || (r.tags||'').toLowerCase().includes(q) || (r.ingredients||'').toLowerCase().includes(q)));
+  items=items.sort((a,b)=> (b.fav?1:0)-(a.fav?1:0) || (a.name||'').localeCompare(b.name||''));
+  if(!Store.data.items.length){ root.appendChild(el(`<div class="empty">🍳 아직 레시피가 없어요.<br>＋ 로 와이프표 레시피를 추가해보세요 😺</div>`)); return; }
+  if(!items.length){ root.appendChild(el(`<div class="empty">검색 결과가 없어요</div>`)); return; }
+  items.forEach(r=>{
+    const card=el(`<div class="rcard">
+      <div style="flex:1"><div class="nm">${esc(r.name)}</div>${r.tags?`<div class="tags">🏷️ ${esc(r.tags)}</div>`:''}</div>
+      <span class="fav">${r.fav?'⭐':'☆'}</span></div>`);
+    card.addEventListener('click', ()=>openView(r.id));
+    root.appendChild(card);
+  });
+}
+function openView(id){
+  const r=Store.data.items.find(x=>x.id===id); if(!r) return;
+  const ing=lines(r.ingredients), st=lines(r.steps);
+  const m=el(`<div class="modal-bg"><div class="modal">
+    <h2>${r.fav?'⭐ ':''}${esc(r.name)}</h2>
+    ${r.tags?`<div class="muted" style="font-size:13px">🏷️ ${esc(r.tags)}</div>`:''}
+    ${ing.length?`<div class="sec">🧺 재료</div><ul class="ing-list">${ing.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+    ${st.length?`<div class="sec">👩‍🍳 만드는 법</div><ol class="steps">${st.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:''}
+    ${r.memo?`<div class="sec">📝 메모</div><div style="white-space:pre-wrap">${esc(r.memo)}</div>`:''}
+    ${ing.length?`<div style="margin-top:14px"><button class="btn ok" style="width:100%" onclick="toShopping('${id}')">🛒 재료 장보기에 담기</button></div>`:''}
+    <div class="actions">
+      <button class="btn" onclick="favToggle('${id}')">${r.fav?'⭐ 즐겨찾기 해제':'☆ 즐겨찾기'}</button>
+      <button class="btn" onclick="openEdit('${id}')">✏️ 수정</button>
+      <button class="btn" onclick="closeModal()">닫기</button>
+    </div></div></div>`);
+  showModal(m);
+}
+function openEdit(id=null){
+  const ed=id?Store.data.items.find(r=>r.id===id):null;
+  const r=ed||{ name:'', tags:'', ingredients:'', steps:'', memo:'', fav:false };
+  const m=el(`<div class="modal-bg"><div class="modal">
+    <h2>${ed?'✏️ 레시피 수정':'➕ 레시피 추가'}</h2>
+    <div class="field"><label>요리 이름 *</label><input id="f_name" value="${esc(r.name)}" placeholder="예: 와이프표 김치찌개" /></div>
+    <div class="field"><label>태그 (선택)</label><input id="f_tags" value="${esc(r.tags)}" placeholder="예: 한식, 국물, 30분" /></div>
+    <div class="field"><label>🧺 재료 (한 줄에 하나씩)</label><textarea id="f_ing" placeholder="돼지고기 200g\n김치 1/4포기\n두부 1모\n대파 1대">${esc(r.ingredients)}</textarea></div>
+    <div class="field"><label>👩‍🍳 만드는 법 (한 줄에 한 단계)</label><textarea id="f_steps" placeholder="고기를 볶는다\n김치를 넣고 볶는다\n물을 붓고 끓인다">${esc(r.steps)}</textarea></div>
+    <div class="field"><label>📝 메모 (선택)</label><input id="f_memo" value="${esc(r.memo)}" placeholder="예: 설탕 약간 넣으면 맛있음" /></div>
+    <div class="field"><label class="chk"><input type="checkbox" id="f_fav" ${r.fav?'checked':''}> ⭐ 즐겨찾기</label></div>
+    <div class="actions">${ed?`<button class="btn danger" onclick="del('${id}')">🗑️</button>`:''}
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="save('${id||''}')">💾 저장</button></div>
+  </div></div>`);
+  showModal(m);
+}
+function save(id){ const name=$('#f_name').value.trim(); if(!name){toast('요리 이름을 입력해주세요');return;}
+  const fields={ name, tags:$('#f_tags').value.trim(), ingredients:$('#f_ing').value, steps:$('#f_steps').value, memo:$('#f_memo').value.trim(), fav:$('#f_fav').checked };
+  if(id) Object.assign(Store.data.items.find(r=>r.id===id), fields);
+  else Store.data.items.push({ id:Store.uid(), ...fields });
+  Store.save(); closeModal(); toast('💾 저장!'); render(); }
+function del(id){ if(confirm('이 레시피를 삭제할까요?')){ Store.data.items=Store.data.items.filter(r=>r.id!==id); Store.save(); closeModal(); render(); } }
+function favToggle(id){ const r=Store.data.items.find(x=>x.id===id); if(r){ r.fav=!r.fav; Store.save(); closeModal(); render(); } }
+function toShopping(id){
+  const r=Store.data.items.find(x=>x.id===id); if(!r) return;
+  const ing=lines(r.ingredients); if(!ing.length){ toast('재료가 없어요'); return; }
+  if(!confirm(`재료 ${ing.length}개를 장보기 목록에 담을까요?`)) return;
+  const ref=db.ref('shopping/'+Store.code);
+  ref.once('value').then(snap=>{ const d=snap.val()||{}; d.items=d.items||[];
+    let added=0;
+    ing.forEach(name=>{ if(!d.items.some(i=>!i.done && i.name===name)){ d.items.unshift({ id:'s'+Math.random().toString(36).slice(2,10), name, note:'', cat:'식품', emoji:'🥦', done:false, at:Date.now() }); added++; } });
+    ref.set(d); closeModal(); toast(`🛒 장보기에 ${added}개 담았어요!`);
+  });
+}
+function showModal(node){ closeModal(); node.addEventListener('click',e=>{ if(e.target===node) closeModal(); }); $('#modalRoot').appendChild(node); }
+function closeModal(){ $('#modalRoot').innerHTML=''; }
+(function boot(){ const code=localStorage.getItem('kimzipsa_code'); if(code){ $('#codeInput').value=code; enterSpace(); } })();
+</script>
+</body>
+</html>

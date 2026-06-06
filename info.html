@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🏠 김집사 — 우리집 정보</title>
+<style>
+  :root { --bg:#f5f4fb; --card:#fff; --line:#e7e4f0; --text:#2a2440; --muted:#8a85a3; --primary:#7c5cff; --primary-dark:#6344e0; --danger:#e0483b; --shadow:0 1px 3px rgba(40,30,80,.08),0 4px 16px rgba(40,30,80,.06); }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","맑은 고딕",sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.5; }
+  button { font-family:inherit; cursor:pointer; } input,select,textarea { font-family:inherit; font-size:15px; }
+  .modbar { display:flex; gap:5px; padding:7px 10px; background:#2a2440; overflow-x:auto; }
+  .modbar a { flex:0 0 auto; text-decoration:none; color:#cbc5e8; font-weight:700; font-size:13px; padding:6px 12px; border-radius:999px; white-space:nowrap; }
+  .modbar a.on { background:#7c5cff; color:#fff; }
+  header { position:sticky; top:0; z-index:50; background:var(--card); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:9px; padding:11px 16px; }
+  header h1 { font-size:17px; margin:0; font-weight:800; }
+  header .code-chip { margin-left:auto; font-size:12px; color:var(--muted); background:var(--bg); border:1px solid var(--line); padding:4px 9px; border-radius:999px; cursor:pointer; }
+  nav.tabs { position:sticky; top:54px; z-index:40; display:flex; background:var(--card); border-bottom:1px solid var(--line); }
+  nav.tabs button { flex:1; border:none; background:none; padding:11px 2px; font-size:13.5px; color:var(--muted); border-bottom:2.5px solid transparent; font-weight:700; }
+  nav.tabs button.active { color:var(--primary); border-bottom-color:var(--primary); }
+  main { padding:14px; max-width:760px; margin:0 auto; padding-bottom:92px; }
+  .muted { color:var(--muted); }
+  .btn { border:1px solid var(--line); background:var(--card); color:var(--text); padding:9px 14px; border-radius:10px; font-size:14px; font-weight:700; }
+  .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.sm { padding:6px 11px; font-size:13px; }
+  .btn.danger { color:var(--danger); border-color:#f1c4bf; }
+  .empty { text-align:center; color:var(--muted); padding:34px 10px; font-size:14px; }
+  .searchbar { position:sticky; top:54px; z-index:30; background:var(--bg); padding:10px 0; }
+  .searchbar input { width:100%; padding:11px; border:1px solid var(--line); border-radius:10px; }
+  .filters { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .filters button { border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 11px; font-size:12.5px; font-weight:700; color:var(--muted); }
+  .filters button.on { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .cat-head { font-size:13px; font-weight:800; color:var(--muted); margin:16px 0 8px; }
+  .info-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow); }
+  .info-card .top { display:flex; align-items:center; gap:8px; }
+  .info-card .nm { font-weight:800; cursor:pointer; flex:1; }
+  .info-card .val { margin-top:5px; font-size:14.5px; word-break:break-all; white-space:pre-wrap; }
+  .info-card .memo { margin-top:4px; font-size:12.5px; color:var(--muted); }
+  .reveal { border:1px solid var(--line); background:var(--bg); border-radius:7px; padding:3px 9px; font-size:12px; font-weight:700; }
+  .modal-bg { position:fixed; inset:0; background:rgba(30,22,60,.45); z-index:100; display:flex; align-items:flex-end; justify-content:center; }
+  @media (min-width:600px){ .modal-bg{ align-items:center; } }
+  .modal { background:var(--card); width:100%; max-width:480px; border-radius:18px 18px 0 0; padding:18px; max-height:92vh; overflow-y:auto; }
+  @media (min-width:600px){ .modal{ border-radius:18px; } }
+  .modal h2 { margin:0 0 14px; font-size:17px; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; font-weight:700; }
+  .field input,.field select,.field textarea { width:100%; padding:10px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .field textarea { min-height:64px; resize:vertical; }
+  .chk { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; }
+  .chk input { width:auto; }
+  .modal .actions { display:flex; gap:8px; margin-top:8px; } .modal .actions .btn { flex:1; }
+  .fab { position:fixed; right:18px; bottom:18px; z-index:60; background:var(--primary); color:#fff; border:none; width:58px; height:58px; border-radius:50%; font-size:30px; line-height:1; box-shadow:0 6px 18px rgba(124,92,255,.45); }
+  .start-wrap { max-width:420px; margin:7vh auto; padding:24px; text-align:center; }
+  .start-wrap .logo { font-size:56px; } .start-wrap h1 { font-size:24px; margin:6px 0 2px; font-weight:800; }
+  .start-wrap p { color:var(--muted); margin:0 0 22px; font-size:14px; }
+  .start-wrap input { width:100%; padding:13px; border:1px solid var(--line); border-radius:12px; text-align:center; font-size:16px; }
+  .start-wrap .btn { width:100%; margin-top:10px; }
+  .toast { position:fixed; bottom:92px; left:50%; transform:translateX(-50%); background:#2a2440; color:#fff; padding:11px 20px; border-radius:999px; font-size:14px; z-index:200; opacity:0; transition:opacity .2s; pointer-events:none; font-weight:600; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div id="startScreen" class="start-wrap">
+  <div class="logo">🏠</div><h1>김집사 — 우리집 정보</h1>
+  <p>가족 공유코드를 입력하세요 😺</p>
+  <input id="codeInput" placeholder="예: kim-house-7392" autocomplete="off" />
+  <button class="btn primary" onclick="enterSpace()">🚪 입장하기</button>
+</div>
+<div id="app" style="display:none">
+  <div class="modbar">
+    <a href="index.html">🏠 홈</a><a href="butler.html">🧹 집안일</a><a href="storage.html">📦 창고</a>
+    <a href="vehicle.html">🚗 차량</a><a href="schedule.html">📅 일정</a><a href="shopping.html">🛒 장보기</a>
+    <a href="fines.html">💸 벌금</a><a href="info.html" class="on">🏠 정보</a><a href="recipe.html">🍳 레시피</a>
+  </div>
+  <header><span style="font-size:22px">🏠</span><h1>우리집 정보</h1>
+    <span class="code-chip" id="codeChip" onclick="changeCode()" title="코드 변경"></span></header>
+  <nav class="tabs">
+    <button data-tab="list" class="active" onclick="switchTab('list')">🏠 정보</button>
+    <button data-tab="settings" onclick="switchTab('settings')">⚙️ 설정</button>
+  </nav>
+  <main>
+    <div id="tab-list"></div>
+    <div id="tab-settings" style="display:none"></div>
+  </main>
+  <button class="fab" id="fab" onclick="openModal()" title="정보 추가">＋</button>
+</div>
+<div id="modalRoot"></div><div id="toast" class="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = { apiKey:"AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8", authDomain:"kimzipsa-bfe26.firebaseapp.com",
+    databaseURL:"https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"kimzipsa-bfe26",
+    storageBucket:"kimzipsa-bfe26.firebasestorage.app", messagingSenderId:"99764860737", appId:"1:99764860737:web:e0450a5ef9e0954a6ad3c0" };
+  firebase.initializeApp(firebaseConfig); const db = firebase.database();
+</script>
+<script>
+const CATS = [
+  {key:'와이파이/비번', e:'📶'}, {key:'연락처', e:'📞'}, {key:'계좌/납부', e:'💳'},
+  {key:'사용법', e:'📖'}, {key:'기타', e:'🗂️'},
+];
+function catE(k){ return (CATS.find(c=>c.key===k)||CATS[CATS.length-1]).e; }
+
+const Store = {
+  code:null, ref:null, _ready:false, data:{ items:[] },
+  init(code, onReady){ this.code=code; this._ready=false; this.ref=db.ref('info/'+code);
+    this.ref.on('value', snap=>{ const v=snap.val();
+      if(v && v.items) this.data=v; else if(v && Object.keys(v).length) { this.data=v; this.data.items||=[]; }
+      else { this.data=this._seed(); this.ref.set(this.data); }
+      this.data.items||=[];
+      if(!this._ready){ this._ready=true; onReady&&onReady(); } else render();
+    }, ()=>toast('연결 오류 😢 인터넷을 확인해주세요')); },
+  _seed(){ return { items:[
+    {id:'i1', cat:'와이파이/비번', title:'집 와이파이', content:'', secret:true, memo:'이름/비밀번호 입력'},
+    {id:'i2', cat:'계좌/납부', title:'관리비 계좌', content:'', secret:false, memo:''},
+    {id:'i3', cat:'사용법', title:'보일러 사용법', content:'', secret:false, memo:''},
+  ] }; },
+  save(){ if(this.ref) this.ref.set(this.data); },
+  uid(){ return 'i'+Math.random().toString(36).slice(2,10); },
+};
+function $(s,r=document){return r.querySelector(s);} function $all(s,r=document){return [...r.querySelectorAll(s)];}
+function el(h){const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstElementChild;}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),1700);}
+
+function enterSpace(){ const code=$('#codeInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if(!code){toast('코드를 입력해주세요 🐱');return;}
+  localStorage.setItem('kimzipsa_code',code);
+  $('#startScreen').style.display='none'; $('#app').style.display='';
+  $('#codeChip').textContent='😺 '+code; toast('연결 중... 🏠');
+  Store.init(code, ()=>switchTab('list')); }
+function changeCode(){ if(confirm('홈으로 가서 다른 코드로 바꿀까요?')){ localStorage.removeItem('kimzipsa_code'); location.href='index.html'; } }
+
+let currentTab='list', query='', filterCat='', revealed=new Set();
+function switchTab(t){ currentTab=t; $all('nav.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+  ['list','settings'].forEach(x=>$('#tab-'+x).style.display=(x===t)?'':'none');
+  $('#fab').style.display=(t==='settings')?'none':''; render(); }
+function render(){ if(currentTab==='list') renderList(); else renderSettings(); }
+
+function renderList(){
+  const root=$('#tab-list'); root.innerHTML='';
+  const sb=el(`<div class="searchbar"><input id="q" placeholder="🔎 검색 (제목·내용)" value="${esc(query)}" />
+    <div class="filters"><button class="${!filterCat?'on':''}" data-c="">전체</button>
+    ${CATS.map(c=>`<button class="${filterCat===c.key?'on':''}" data-c="${esc(c.key)}">${c.e} ${c.key}</button>`).join('')}</div></div>`);
+  root.appendChild(sb);
+  $('#q',sb).addEventListener('input',e=>{ query=e.target.value; renderItems(); });
+  $all('.filters button',sb).forEach(b=>b.addEventListener('click',()=>{ filterCat=b.dataset.c; renderList(); }));
+  const wrap=el(`<div id="items"></div>`); root.appendChild(wrap); renderItems();
+}
+function renderItems(){
+  const root=$('#items'); root.innerHTML='';
+  const q=query.trim().toLowerCase();
+  let items=Store.data.items.filter(i=> (!filterCat||i.cat===filterCat) &&
+    (!q || (i.title||'').toLowerCase().includes(q) || (i.content||'').toLowerCase().includes(q) || (i.memo||'').toLowerCase().includes(q)));
+  if(!items.length){ root.appendChild(el(`<div class="empty">🏠 정보가 없어요.<br>＋ 로 추가하세요 (와이파이 비번, 관리비 계좌 등)</div>`)); return; }
+  // 분류별 그룹
+  const cats=[...new Set(items.map(i=>i.cat))];
+  cats.forEach(cat=>{
+    root.appendChild(el(`<div class="cat-head">${catE(cat)} ${esc(cat)}</div>`));
+    items.filter(i=>i.cat===cat).forEach(i=>root.appendChild(card(i)));
+  });
+}
+function card(i){
+  const c=el(`<div class="info-card"></div>`);
+  const top=el(`<div class="top"><span class="nm">${esc(i.title)}</span></div>`);
+  $('.nm',top).addEventListener('click',()=>openModal(i.id));
+  if(i.secret){ const r=el(`<button class="reveal">${revealed.has(i.id)?'🙈 가리기':'👁 보기'}</button>`);
+    r.addEventListener('click',()=>{ if(revealed.has(i.id))revealed.delete(i.id); else revealed.add(i.id); renderItems(); }); top.appendChild(r); }
+  c.appendChild(top);
+  if(i.content){ const shown=(i.secret && !revealed.has(i.id)) ? '••••••••' : i.content;
+    c.appendChild(el(`<div class="val">${esc(shown)}</div>`)); }
+  else c.appendChild(el(`<div class="val muted" style="font-size:13px">(내용 비어있음 — 눌러서 입력)</div>`));
+  if(i.memo) c.appendChild(el(`<div class="memo">📝 ${esc(i.memo)}</div>`));
+  return c;
+}
+function openModal(id=null){
+  const ed=id?Store.data.items.find(i=>i.id===id):null;
+  const i=ed||{ cat:CATS[0].key, title:'', content:'', secret:false, memo:'' };
+  const m=el(`<div class="modal-bg"><div class="modal">
+    <h2>${ed?'✏️ 정보 수정':'➕ 정보 추가'}</h2>
+    <div class="field"><label>제목 *</label><input id="f_title" value="${esc(i.title)}" placeholder="예: 집 와이파이, 도어락 비번" /></div>
+    <div class="field"><label>분류</label><select id="f_cat">${CATS.map(c=>`<option value="${esc(c.key)}" ${c.key===i.cat?'selected':''}>${c.e} ${c.key}</option>`).join('')}</select></div>
+    <div class="field"><label>내용</label><textarea id="f_content" placeholder="예: 아이디 KimHouse / 비번 1234abcd">${esc(i.content)}</textarea></div>
+    <div class="field"><label class="chk"><input type="checkbox" id="f_secret" ${i.secret?'checked':''}> 🔒 민감정보 (평소엔 가려서 표시)</label></div>
+    <div class="field"><label>메모 (선택)</label><input id="f_memo" value="${esc(i.memo)}" /></div>
+    <div class="actions">${ed?`<button class="btn danger" onclick="del('${id}')">🗑️</button>`:''}
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="save('${id||''}')">💾 저장</button></div>
+  </div></div>`);
+  showModal(m);
+}
+function save(id){ const title=$('#f_title').value.trim(); if(!title){toast('제목을 입력해주세요');return;}
+  const fields={ title, cat:$('#f_cat').value, content:$('#f_content').value, secret:$('#f_secret').checked, memo:$('#f_memo').value.trim() };
+  if(id) Object.assign(Store.data.items.find(i=>i.id===id), fields);
+  else Store.data.items.push({ id:Store.uid(), ...fields });
+  Store.save(); closeModal(); toast('💾 저장!'); render(); }
+function del(id){ if(confirm('이 정보를 삭제할까요?')){ Store.data.items=Store.data.items.filter(i=>i.id!==id); Store.save(); closeModal(); render(); } }
+
+function renderSettings(){
+  const root=$('#tab-settings'); root.innerHTML='';
+  root.appendChild(el(`<div class="cat-head">💾 백업</div>`));
+  root.appendChild(el(`<div class="muted" style="font-size:12.5px;margin:-4px 0 8px">⚠️ 비밀번호 등 민감정보가 들어갈 수 있으니 백업 파일 관리에 주의하세요.</div>`));
+  const exp=el(`<button class="btn" style="margin-right:8px">⬇️ 내보내기</button>`); exp.addEventListener('click',exportBackup);
+  const imp=el(`<label class="btn" style="display:inline-block">⬆️ 불러오기<input type="file" accept="application/json" style="display:none"></label>`);
+  imp.querySelector('input').addEventListener('change',importBackup);
+  root.append(exp,imp);
+  root.appendChild(el(`<div class="muted" style="margin-top:22px;font-size:12.5px">항목 ${Store.data.items.length}개 · 코드 ${esc(Store.code)}</div>`));
+}
+function exportBackup(){ const blob=new Blob([JSON.stringify(Store.data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); const d=new Date(); a.href=url; a.download=`우리집정보_${Store.code}_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`; a.click(); URL.revokeObjectURL(url); toast('💾 백업 저장!'); }
+function importBackup(ev){ const f=ev.target.files[0]; if(!f)return; if(!confirm('현재 데이터를 덮어쓸까요?')){ev.target.value='';return;}
+  const r=new FileReader(); r.onload=e=>{ try{ const d=JSON.parse(e.target.result); Store.data={items:d.items||[]}; Store.save(); render(); toast('✅ 불러오기 완료'); }catch(err){ toast('파일을 읽지 못했어요 😢'); } }; r.readAsText(f); }
+
+function showModal(node){ closeModal(); node.addEventListener('click',e=>{ if(e.target===node) closeModal(); }); $('#modalRoot').appendChild(node); }
+function closeModal(){ $('#modalRoot').innerHTML=''; }
+(function boot(){ const code=localStorage.getItem('kimzipsa_code'); if(code){ $('#codeInput').value=code; enterSpace(); } })();
+</script>
+</body>
+</html>
