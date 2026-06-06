@@ -58,6 +58,7 @@
   .cal-more { font-size:10px; color:var(--muted); }
   .cal-dots { display:flex; gap:3px; flex-wrap:wrap; margin-top:4px; justify-content:center; align-items:center; }
   .cal-dot2 { width:7px; height:7px; border-radius:50%; }
+  .cal-hol { font-size:9px; color:#e0483b; font-weight:800; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
 
   .list-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px;
     margin-bottom: 8px; box-shadow: var(--shadow); cursor:pointer; display:flex; align-items:center; gap:10px; }
@@ -208,6 +209,27 @@ function annivOccIso(a, year){ const d=parseDate(a.date); if(!d) return null;
 function annivFor(iso){ const y=Number(iso.slice(0,4)); return annivItems.filter(a=>a.date)
   .map(a=> annivOccIso(a,y)===iso ? ({ id:'anv_'+a.id, date:iso, end:'', time:'', title:annivTitle(a), cat:'기념', isAnniv:true }) : null).filter(Boolean); }
 function eventsOn(iso){ return Store.data.events.filter(e=> e.date<=iso && (e.end||e.date)>=iso ).concat(annivFor(iso)).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99')); }
+
+/* ===== 한국 공휴일 (음력 포함 + 대체공휴일) ===== */
+function addDays(dt, n){ const d=new Date(dt); d.setDate(d.getDate()+n); d.setHours(0,0,0,0); return d; }
+function lunarSolarDate(y, lm, ld){ const iso=lunarToSolarISO(y, lm, ld); return iso?parseDate(iso):null; }
+const _holCache={};
+function getHolidays(year){ if(!_holCache[year]) _holCache[year]=calcHolidays(year); return _holCache[year]; }
+function calcHolidays(year){
+  const map={}; const set=(d,name)=>{ map[typeof d==='string'?d:toISO(d)]=name; };
+  set(`${year}-01-01`,'신정'); set(`${year}-03-01`,'삼일절'); set(`${year}-05-05`,'어린이날');
+  set(`${year}-06-06`,'현충일'); set(`${year}-08-15`,'광복절'); set(`${year}-10-03`,'개천절');
+  set(`${year}-10-09`,'한글날'); set(`${year}-12-25`,'크리스마스');
+  const seol=lunarSolarDate(year,1,1); if(seol){ set(addDays(seol,-1),'설날'); set(seol,'설날'); set(addDays(seol,1),'설날'); }
+  const chu=lunarSolarDate(year,8,15); if(chu){ set(addDays(chu,-1),'추석'); set(chu,'추석'); set(addDays(chu,1),'추석'); }
+  const bud=lunarSolarDate(year,4,8); if(bud) set(bud,'부처님오신날');
+  const nextFree=(dt)=>{ let nd=addDays(dt,1); while(nd.getDay()===0||nd.getDay()===6||map[toISO(nd)]) nd=addDays(nd,1); return nd; };
+  if(seol && [addDays(seol,-1),seol,addDays(seol,1)].some(x=>x.getDay()===0)) set(nextFree(addDays(seol,1)),'대체공휴일');
+  if(chu && [addDays(chu,-1),chu,addDays(chu,1)].some(x=>x.getDay()===0)) set(nextFree(addDays(chu,1)),'대체공휴일');
+  [`${year}-03-01`,`${year}-05-05`,`${year}-08-15`,`${year}-10-03`,`${year}-10-09`,`${year}-12-25`].forEach(iso=>{ const dow=parseDate(iso).getDay(); if(dow===0||dow===6) set(nextFree(parseDate(iso)),'대체공휴일'); });
+  if(bud){ const dow=bud.getDay(); if(dow===0||dow===6) set(nextFree(bud),'대체공휴일'); }
+  return map;
+}
 function rangeLabel(e){ if(e.end && e.end!==e.date){ const a=parseDate(e.date), b=parseDate(e.end); return `${a.getMonth()+1}/${a.getDate()}~${b.getMonth()+1}/${b.getDate()}`; } return ''; }
 
 /* ===================== 시작/코드 ===================== */
@@ -264,8 +286,10 @@ function renderCal() {
     const cellDate = new Date(viewY, viewM, dayNum);
     const iso = toISO(cellDate);
     const wd = cellDate.getDay();
+    const hol = getHolidays(cellDate.getFullYear())[iso];
     const cell = el(`<div class="cal-cell ${inMonth?'':'other'} ${iso===todayStr?'today':''}"></div>`);
-    cell.appendChild(el(`<div class="cal-dnum ${wd===0?'sun':''} ${wd===6?'sat':''}">${cellDate.getDate()}</div>`));
+    cell.appendChild(el(`<div class="cal-dnum ${(wd===0||hol)?'sun':''} ${(wd===6&&!hol)?'sat':''}">${cellDate.getDate()}</div>`));
+    if (hol) cell.appendChild(el(`<div class="cal-hol">${esc(hol)}</div>`));
     const evs = eventsOn(iso);
     if (evs.length) {
       const dots = el(`<div class="cal-dots"></div>`);
@@ -310,8 +334,10 @@ function renderCal() {
 /* ===================== 하루 보기 ===================== */
 function openDay(iso) {
   const evs = eventsOn(iso);
+  const hol = getHolidays(Number(iso.slice(0,4)))[iso];
   const m = el(`<div class="modal-bg"><div class="modal">
     <h2>📅 ${fmtKFull(iso)}</h2>
+    ${hol?`<div style="color:#e0483b;font-weight:800;margin:-6px 0 10px">🇰🇷 ${esc(hol)}</div>`:''}
     <div id="dayList"></div>
     <div class="actions"><button class="btn primary" onclick="openEventModal(null,'${iso}')">＋ 이 날 일정 추가</button></div>
     <div style="margin-top:8px"><button class="btn" style="width:100%" onclick="closeModal()">닫기</button></div>
