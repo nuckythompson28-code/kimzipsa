@@ -193,6 +193,7 @@
     <a href="storage.html" class="on">📦 창고</a>
     <a href="vehicle.html">🚗 차량</a>
     <a href="schedule.html">📅 일정</a>
+    <a href="shopping.html">🛒 장보기</a>
   </div>
   <header>
     <span style="font-size:20px">📦</span>
@@ -421,9 +422,20 @@ function itemLine(it) {
   minus.addEventListener('click', e => { e.stopPropagation(); adjustQty(it.id, -1); });
   plus.addEventListener('click', e => { e.stopPropagation(); adjustQty(it.id, +1); });
   qv.addEventListener('click', e => { e.stopPropagation(); openAdjustModal(it.id); });
-  ctrl.append(minus, qv, plus);
+  const cart = el(`<button title="장보기에 추가" style="border:1px solid var(--line);background:var(--bg);border-radius:7px;width:26px;height:26px;font-size:13px;line-height:1">🛒</button>`);
+  cart.addEventListener('click', e => { e.stopPropagation(); addToShopping(it.name); });
+  ctrl.append(minus, qv, plus, cart);
   line.appendChild(ctrl);
   return line;
+}
+function addToShopping(name) {
+  const ref = db.ref('shopping/' + Store.code);
+  ref.once('value').then(snap => {
+    const d = snap.val() || {}; d.items = d.items || [];
+    if (d.items.some(i => !i.done && i.name === name)) { toast('이미 장보기에 있어요'); return; }
+    d.items.unshift({ id: 's'+Math.random().toString(36).slice(2,10), name, note:'', cat:'식품', done:false, at: Date.now() });
+    ref.set(d); toast('🛒 장보기에 담았어요: ' + name);
+  });
 }
 
 /* =========================================================================
