@@ -95,6 +95,10 @@
   .toast { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); background: #2a2440; color: #fff;
     padding: 11px 20px; border-radius: 999px; font-size: 14px; z-index: 200; opacity: 0; transition: opacity .2s; pointer-events: none; font-weight: 600; }
   .toast.show { opacity: 1; }
+  .reg-hero { text-align:center; padding:40px 16px; }
+  .reg-hero .e { font-size:60px; }
+  .reg-hero h2 { margin:10px 0 6px; }
+  .reg-hero p { color:var(--muted); margin:0 0 20px; }
 </style>
 </head>
 <body>
@@ -113,6 +117,7 @@
     <a href="butler.html">🧹 집안일</a>
     <a href="storage.html">📦 창고</a>
     <a href="vehicle.html" class="on">🚗 차량</a>
+    <a href="schedule.html">📅 일정</a>
   </div>
   <header>
     <span style="font-size:22px">🚗</span>
@@ -121,14 +126,14 @@
   </header>
   <nav class="tabs">
     <button data-tab="summary" class="active" onclick="switchTab('summary')">📋 요약</button>
-    <button data-tab="fuel" onclick="switchTab('fuel')">⛽ 주유</button>
+    <button data-tab="charge" onclick="switchTab('charge')">🔌 충전</button>
     <button data-tab="service" onclick="switchTab('service')">🔧 정비</button>
     <button data-tab="due" onclick="switchTab('due')">📅 만기</button>
     <button data-tab="settings" onclick="switchTab('settings')">⚙️</button>
   </nav>
   <main>
     <div id="tab-summary"></div>
-    <div id="tab-fuel" style="display:none"></div>
+    <div id="tab-charge" style="display:none"></div>
     <div id="tab-service" style="display:none"></div>
     <div id="tab-due" style="display:none"></div>
     <div id="tab-settings" style="display:none"></div>
@@ -157,34 +162,31 @@
 </script>
 
 <script>
-/* ===================== 저장소 (Firebase RTDB) ===================== */
+/* ===================== 저장소 (Firebase RTDB) — 전기차 ===================== */
 const Store = {
   code: null, ref: null, _ready: false,
-  data: { cars: [], fuel: [], service: [], reminders: [] },
+  data: { cars: [], charge: [], service: [], reminders: [] },
   init(code, onReady) {
     this.code = code; this._ready = false;
     this.ref = db.ref('vehicle/' + code);
     this.ref.on('value', snap => {
-      const val = snap.val();
-      if (val && (val.cars || val.fuel || val.service || val.reminders)) this.data = val;
-      else { this.data = this._seed(); this.ref.set(this.data); }
-      this.data.cars ||= []; this.data.fuel ||= []; this.data.service ||= []; this.data.reminders ||= [];
+      const val = snap.val() || {};
+      this.data = val;
+      this.data.cars ||= []; this.data.service ||= []; this.data.reminders ||= [];
+      this.data.charge ||= (this.data.fuel || []);   // 구버전 fuel → charge
+      delete this.data.fuel;
+      // 기본 시드 차량('내 차')만 있고 기록이 없으면 → 직접 등록하도록 비움
+      if (this.data.cars.length === 1) {
+        const c = this.data.cars[0];
+        if (c.name === '내 차' && !c.plate && !c.memo && !this.data.charge.length && !this.data.service.length) {
+          this.data.cars = []; this.data.reminders = [];
+        }
+      }
       if (!this._ready) { this._ready = true; onReady && onReady(); } else { render(); }
     }, () => toast('연결 오류 😢 인터넷을 확인해주세요'));
   },
-  _seed() {
-    return {
-      cars: [{ id:'c1', name:'내 차', plate:'', memo:'' }],
-      fuel: [], service: [],
-      reminders: [
-        { id:'r1', carId:'c1', kind:'date', name:'자동차 보험 만기', dueDate:'', memo:'' },
-        { id:'r2', carId:'c1', kind:'date', name:'정기검사', dueDate:'', memo:'' },
-        { id:'r3', carId:'c1', kind:'km', name:'엔진오일 교체', intervalKm:10000, lastOdo:0, memo:'' }
-      ]
-    };
-  },
   save() { if (this.ref) this.ref.set(this.data); },
-  uid(p) { return (p||'v') + Math.random().toString(36).slice(2, 9) + (this.data.fuel.length + this.data.service.length); },
+  uid(p) { return (p||'v') + Math.random().toString(36).slice(2, 9) + (this.data.charge.length + this.data.service.length); },
 };
 
 /* ===================== 유틸 ===================== */
@@ -207,11 +209,11 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
 let curCarId = null;
 function curCar() { return Store.data.cars.find(c => c.id === curCarId) || Store.data.cars[0] || null; }
 function ensureCar() { if (!curCarId || !Store.data.cars.find(c=>c.id===curCarId)) curCarId = Store.data.cars[0]?.id || null; }
-function carFuel(id) { return Store.data.fuel.filter(f => f.carId === id).sort((a,b)=> (a.odo-b.odo) || a.date.localeCompare(b.date)); }
+function carCharge(id) { return Store.data.charge.filter(f => f.carId === id).sort((a,b)=> (a.odo-b.odo) || a.date.localeCompare(b.date)); }
 function carService(id) { return Store.data.service.filter(s => s.carId === id).sort((a,b)=> b.date.localeCompare(a.date)); }
 function latestOdo(id) {
   let m = 0;
-  Store.data.fuel.filter(f=>f.carId===id).forEach(f=> m=Math.max(m, Number(f.odo)||0));
+  Store.data.charge.filter(f=>f.carId===id).forEach(f=> m=Math.max(m, Number(f.odo)||0));
   Store.data.service.filter(s=>s.carId===id).forEach(s=> m=Math.max(m, Number(s.odo)||0));
   Store.data.reminders.filter(r=>r.carId===id&&r.kind==='km').forEach(r=> m=Math.max(m, Number(r.lastOdo)||0));
   return m;
@@ -236,20 +238,37 @@ let currentTab = 'summary';
 function switchTab(tab) {
   currentTab = tab;
   $all('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  ['summary','fuel','service','due','settings'].forEach(t => $('#tab-'+t).style.display=(t===tab)?'':'none');
-  $('#fab').style.display = (tab==='summary'||tab==='settings') ? 'none' : '';
+  ['summary','charge','service','due','settings'].forEach(t => $('#tab-'+t).style.display=(t===tab)?'':'none');
+  $('#fab').style.display = (tab==='summary'||tab==='settings'||!curCar()) ? 'none' : '';
   render();
 }
 function render() {
   ensureCar();
+  // 차량 미등록 → 등록 먼저
+  if (Store.data.cars.length === 0 && currentTab !== 'settings') {
+    const root = $('#tab-'+currentTab); root.innerHTML='';
+    root.appendChild(regHero());
+    $('#fab').style.display='none';
+    return;
+  }
+  $('#fab').style.display = (currentTab==='summary'||currentTab==='settings') ? 'none' : '';
   if (currentTab === 'summary') renderSummary();
-  else if (currentTab === 'fuel') renderFuel();
+  else if (currentTab === 'charge') renderCharge();
   else if (currentTab === 'service') renderService();
   else if (currentTab === 'due') renderDue();
   else if (currentTab === 'settings') renderSettings();
 }
+function regHero() {
+  const h = el(`<div class="reg-hero"><div class="e">🚗</div>
+    <h2>먼저 차량을 등록해 주세요</h2>
+    <p>전기차 정보를 등록하면 충전·정비·만기를 관리할 수 있어요 🔌</p></div>`);
+  const b = el(`<button class="btn primary" style="max-width:240px;margin:0 auto;display:block">＋ 차량 등록하기</button>`);
+  b.addEventListener('click', () => openCarModal());
+  h.appendChild(b);
+  return h;
+}
 function onFab() {
-  if (currentTab === 'fuel') openFuelModal();
+  if (currentTab === 'charge') openChargeModal();
   else if (currentTab === 'service') openServiceModal();
   else if (currentTab === 'due') openReminderModal();
 }
@@ -265,113 +284,107 @@ function carSelector() {
   return wrap;
 }
 
-/* ===================== 연비 계산 ===================== */
-// 완전 주유(full-to-full) 가정: 이번 주유의 (이번주행거리 - 직전주행거리) / 이번 주유량
-function fuelWithEco(id) {
-  const list = carFuel(id);
+/* ===================== 전비 계산 (km/kWh) ===================== */
+function chargeWithEff(id) {
+  const list = carCharge(id);
   return list.map((f, i) => {
     const prev = list[i-1];
-    let eco = null, dist = null;
-    if (prev && Number(f.odo) > Number(prev.odo) && Number(f.amount) > 0) {
+    let eff = null, dist = null;
+    if (prev && Number(f.odo) > Number(prev.odo) && Number(f.kwh) > 0) {
       dist = Number(f.odo) - Number(prev.odo);
-      eco = dist / Number(f.amount);
+      eff = dist / Number(f.kwh);
     }
-    return { ...f, eco, dist };
+    return { ...f, eff, dist };
   });
 }
-function avgEco(id) {
-  const ecos = fuelWithEco(id).map(f=>f.eco).filter(e=>e!=null);
-  if (!ecos.length) return null;
-  return ecos.reduce((a,b)=>a+b,0)/ecos.length;
+function avgEff(id) {
+  const arr = chargeWithEff(id).map(f=>f.eff).filter(e=>e!=null);
+  if (!arr.length) return null;
+  return arr.reduce((a,b)=>a+b,0)/arr.length;
 }
 
 /* ===================== 요약 ===================== */
 function renderSummary() {
   const root = $('#tab-summary'); root.innerHTML = '';
-  if (!curCar()) { root.appendChild(el(`<div class="empty">🚗 등록된 차가 없어요.<br>설정에서 차량을 추가하세요.</div>`)); return; }
   root.appendChild(carSelector());
   const id = curCarId;
   const odo = latestOdo(id);
-  const ae = avgEco(id);
-  const ecoList = fuelWithEco(id);
-  const lastEco = [...ecoList].reverse().find(f=>f.eco!=null);
+  const ae = avgEff(id);
+  const effList = chargeWithEff(id);
+  const lastEff = [...effList].reverse().find(f=>f.eff!=null);
   const yr = todayDate().getFullYear();
-  const fuelCostYr = Store.data.fuel.filter(f=>f.carId===id && (f.date||'').startsWith(yr)).reduce((s,f)=>s+(Number(f.cost)||0),0);
+  const chgCostYr = Store.data.charge.filter(f=>f.carId===id && (f.date||'').startsWith(yr)).reduce((s,f)=>s+(Number(f.cost)||0),0);
   const svcCostYr = Store.data.service.filter(s=>s.carId===id && (s.date||'').startsWith(yr)).reduce((s,v)=>s+(Number(v.cost)||0),0);
 
-  const stat = el(`<div class="stat-card"><h3>📊 현재 상태</h3>
+  root.appendChild(el(`<div class="stat-card"><h3>📊 현재 상태</h3>
     <div class="kv">
       <div class="box"><div class="n">${comma(odo)}</div><div class="l">현재 주행거리(km)</div></div>
-      <div class="box"><div class="n">${ae?ae.toFixed(1):'-'}</div><div class="l">평균 연비(km/L)</div></div>
+      <div class="box"><div class="n">${ae?ae.toFixed(1):'-'}</div><div class="l">평균 전비(km/kWh)</div></div>
     </div>
     <div class="kv" style="margin-top:10px">
-      <div class="box"><div class="n" style="font-size:18px">${lastEco?lastEco.eco.toFixed(1)+'km/L':'-'}</div><div class="l">최근 주유 연비</div></div>
-      <div class="box"><div class="n" style="font-size:18px">${comma(fuelCostYr+svcCostYr)}</div><div class="l">${yr}년 총 차량비용(원)</div></div>
-    </div></div>`);
-  root.appendChild(stat);
+      <div class="box"><div class="n" style="font-size:18px">${lastEff?lastEff.eff.toFixed(1)+'km/kWh':'-'}</div><div class="l">최근 충전 전비</div></div>
+      <div class="box"><div class="n" style="font-size:18px">${comma(chgCostYr+svcCostYr)}</div><div class="l">${yr}년 총 차량비용(원)</div></div>
+    </div></div>`));
 
-  // 다가오는 만기
   const dues = reminderStatuses(id).filter(r=>['over','soon'].includes(r.s.cls));
   const dcard = el(`<div class="stat-card"><h3>📅 곧 챙길 것</h3></div>`);
-  if (dues.length === 0) dcard.appendChild(el(`<div class="muted" style="font-size:13.5px">임박한 만기/정비가 없어요 😺</div>`));
+  if (!dues.length) dcard.appendChild(el(`<div class="muted" style="font-size:13.5px">임박한 만기/정비가 없어요 😺</div>`));
   else dues.forEach(({r,s}) => dcard.appendChild(el(`<div class="list-card ${s.cls}" style="margin-bottom:6px">
       <div class="top"><span class="nm">${esc(r.name)}</span><span class="spacer"></span><span class="status-pill ${s.pill}">${esc(s.label)}</span></div></div>`)));
   root.appendChild(dcard);
-
-  root.appendChild(el(`<div class="muted" style="font-size:12.5px;text-align:center;margin-top:10px">⛽ 주유 ${carFuel(id).length}건 · 🔧 정비 ${carService(id).length}건</div>`));
+  root.appendChild(el(`<div class="muted" style="font-size:12.5px;text-align:center;margin-top:10px">🔌 충전 ${carCharge(id).length}건 · 🔧 정비 ${carService(id).length}건</div>`));
 }
 
-/* ===================== 주유 ===================== */
-function renderFuel() {
-  const root = $('#tab-fuel'); root.innerHTML = '';
+/* ===================== 충전 ===================== */
+function renderCharge() {
+  const root = $('#tab-charge'); root.innerHTML = '';
   root.appendChild(carSelector());
-  const list = [...fuelWithEco(curCarId)].reverse();
-  if (!list.length) { root.appendChild(el(`<div class="empty">⛽ 주유 기록이 없어요.<br>＋ 로 추가하세요.</div>`)); return; }
+  const list = [...chargeWithEff(curCarId)].reverse();
+  if (!list.length) { root.appendChild(el(`<div class="empty">🔌 충전 기록이 없어요.<br>＋ 로 추가하세요.</div>`)); return; }
   for (const f of list) {
     const card = el(`<div class="list-card click">
       <div class="top"><span class="nm">${won(f.cost)}</span>
-        ${f.amount?`<span class="chip-cat">${esc(f.amount)}L</span>`:''}
+        ${f.kwh?`<span class="chip-cat">${esc(f.kwh)}kWh</span>`:''}
         <span class="spacer"></span>
-        ${f.eco!=null?`<span class="status-pill pill-ok">${f.eco.toFixed(1)} km/L</span>`:'<span class="muted" style="font-size:12px">연비 계산중</span>'}</div>
-      <div class="sub">📅 ${fmtKDate(f.date)} · 🛣️ ${comma(f.odo)}km${f.dist?` (+${comma(f.dist)}km)`:''}${f.station?` · ⛽ ${esc(f.station)}`:''}${f.by?` · ${esc(f.by)}`:''}</div>
+        ${f.eff!=null?`<span class="status-pill pill-ok">${f.eff.toFixed(1)} km/kWh</span>`:'<span class="muted" style="font-size:12px">전비 계산중</span>'}</div>
+      <div class="sub">📅 ${fmtKDate(f.date)} · 🛣️ ${comma(f.odo)}km${f.dist?` (+${comma(f.dist)}km)`:''}${f.place?` · 🔌 ${esc(f.place)}`:''}</div>
     </div>`);
-    card.addEventListener('click', () => openFuelModal(f.id));
+    card.addEventListener('click', () => openChargeModal(f.id));
     root.appendChild(card);
   }
 }
-function openFuelModal(id=null) {
-  const ed = id ? Store.data.fuel.find(f=>f.id===id) : null;
-  const f = ed || { date: toISO(todayDate()), odo:'', amount:'', cost:'', station:'', by:'', memo:'' };
+function openChargeModal(id=null) {
+  const ed = id ? Store.data.charge.find(f=>f.id===id) : null;
+  const f = ed || { date: toISO(todayDate()), odo:'', kwh:'', cost:'', place:'', memo:'' };
   const m = el(`<div class="modal-bg"><div class="modal">
-    <h2>${ed?'⛽ 주유 수정':'⛽ 주유 추가'}</h2>
+    <h2>${ed?'🔌 충전 수정':'🔌 충전 추가'}</h2>
     <div class="field-row">
       <div class="field"><label>📅 날짜</label><input id="f_date" type="date" value="${esc(f.date)}" /></div>
-      <div class="field"><label>🛣️ 주행거리(km, 총)</label><input id="f_odo" type="number" inputmode="numeric" value="${esc(f.odo)}" placeholder="예: 45200" /></div>
+      <div class="field"><label>🛣️ 주행거리(km, 총)</label><input id="f_odo" type="number" inputmode="numeric" value="${esc(f.odo)}" placeholder="예: 12500" /></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>⛽ 주유량(L)</label><input id="f_amount" type="number" inputmode="decimal" value="${esc(f.amount)}" placeholder="예: 35" /></div>
-      <div class="field"><label>💰 금액(원)</label><input id="f_cost" type="number" inputmode="numeric" value="${esc(f.cost)}" placeholder="예: 60000" /></div>
+      <div class="field"><label>🔋 충전량(kWh)</label><input id="f_kwh" type="number" inputmode="decimal" value="${esc(f.kwh)}" placeholder="예: 40" /></div>
+      <div class="field"><label>💰 금액(원)</label><input id="f_cost" type="number" inputmode="numeric" value="${esc(f.cost)}" placeholder="예: 12000" /></div>
     </div>
-    <div class="field"><label>⛽ 주유소 (선택)</label><input id="f_station" value="${esc(f.station)}" placeholder="예: GS칼텍스 OO점" /></div>
+    <div class="field"><label>🔌 충전소 (선택)</label><input id="f_place" value="${esc(f.place)}" placeholder="예: 집 충전기, 이마트 급속" /></div>
     <div class="field"><label>📝 메모 (선택)</label><input id="f_memo" value="${esc(f.memo)}" /></div>
     <div class="actions">
-      ${ed?`<button class="btn danger" onclick="delFuel('${id}')">🗑️</button>`:''}
+      ${ed?`<button class="btn danger" onclick="delCharge('${id}')">🗑️</button>`:''}
       <button class="btn" onclick="closeModal()">취소</button>
-      <button class="btn primary" onclick="saveFuel('${id||''}')">💾 저장</button>
+      <button class="btn primary" onclick="saveCharge('${id||''}')">💾 저장</button>
     </div></div></div>`);
   showModal(m);
 }
-function saveFuel(id) {
+function saveCharge(id) {
   const fields = { carId: curCarId, date: $('#f_date').value || toISO(todayDate()),
-    odo: Number($('#f_odo').value)||0, amount: Number($('#f_amount').value)||0,
-    cost: Number($('#f_cost').value)||0, station: $('#f_station').value.trim(),
-    by: '', memo: $('#f_memo').value.trim() };
+    odo: Number($('#f_odo').value)||0, kwh: Number($('#f_kwh').value)||0,
+    cost: Number($('#f_cost').value)||0, place: $('#f_place').value.trim(), memo: $('#f_memo').value.trim() };
   if (!fields.odo) { toast('주행거리를 입력해주세요'); return; }
-  if (id) Object.assign(Store.data.fuel.find(f=>f.id===id), fields);
-  else Store.data.fuel.push({ id: Store.uid('f'), ...fields });
+  if (id) Object.assign(Store.data.charge.find(f=>f.id===id), fields);
+  else Store.data.charge.push({ id: Store.uid('f'), ...fields });
   Store.save(); closeModal(); toast('💾 저장!'); render();
 }
-function delFuel(id) { if(confirm('이 주유 기록을 삭제할까요?')){ Store.data.fuel=Store.data.fuel.filter(f=>f.id!==id); Store.save(); closeModal(); render(); } }
+function delCharge(id) { if(confirm('이 충전 기록을 삭제할까요?')){ Store.data.charge=Store.data.charge.filter(f=>f.id!==id); Store.save(); closeModal(); render(); } }
 
 /* ===================== 정비 ===================== */
 function renderService() {
@@ -393,7 +406,7 @@ function openServiceModal(id=null) {
   const s = ed || { date: toISO(todayDate()), odo:'', title:'', cost:'', shop:'', memo:'' };
   const m = el(`<div class="modal-bg"><div class="modal">
     <h2>${ed?'🔧 정비 수정':'🔧 정비 추가'}</h2>
-    <div class="field"><label>🔧 내용 *</label><input id="s_title" value="${esc(s.title)}" placeholder="예: 엔진오일 교체, 타이어 교체" /></div>
+    <div class="field"><label>🔧 내용 *</label><input id="s_title" value="${esc(s.title)}" placeholder="예: 타이어 교체, 에어컨 필터" /></div>
     <div class="field-row">
       <div class="field"><label>📅 날짜</label><input id="s_date" type="date" value="${esc(s.date)}" /></div>
       <div class="field"><label>🛣️ 주행거리(km)</label><input id="s_odo" type="number" inputmode="numeric" value="${esc(s.odo)}" /></div>
@@ -414,8 +427,7 @@ function saveService(id) {
   const title = $('#s_title').value.trim();
   if (!title) { toast('정비 내용을 입력해주세요'); return; }
   const fields = { carId: curCarId, title, date: $('#s_date').value || toISO(todayDate()),
-    odo: Number($('#s_odo').value)||0, cost: Number($('#s_cost').value)||0,
-    shop: $('#s_shop').value.trim(), memo: $('#s_memo').value.trim() };
+    odo: Number($('#s_odo').value)||0, cost: Number($('#s_cost').value)||0, shop: $('#s_shop').value.trim(), memo: $('#s_memo').value.trim() };
   if (id) Object.assign(Store.data.service.find(s=>s.id===id), fields);
   else Store.data.service.push({ id: Store.uid('s'), ...fields });
   Store.save(); closeModal(); toast('💾 저장!'); render();
@@ -432,15 +444,13 @@ function reminderStatuses(carId) {
       else { const du = daysUntil(r.dueDate);
         if (du < 0) s = { cls:'over', pill:'pill-over', label:`🔴 ${-du}일 지남`, sort:du };
         else if (du <= 30) s = { cls:'soon', pill:'pill-soon', label:`🟠 D-${du}`, sort:du };
-        else s = { cls:'', pill:'pill-ok', label:`🟢 D-${du}`, sort:du };
-      }
-    } else { // km
+        else s = { cls:'', pill:'pill-ok', label:`🟢 D-${du}`, sort:du }; }
+    } else {
       const remain = (Number(r.lastOdo)||0) + (Number(r.intervalKm)||0) - odo;
       if (!r.intervalKm) s = { cls:'todo', pill:'pill-todo', label:'🐾 설정 필요', sort:-0.5 };
       else if (remain <= 0) s = { cls:'over', pill:'pill-over', label:`🔴 ${comma(-remain)}km 초과`, sort:remain };
       else if (remain <= 1000) s = { cls:'soon', pill:'pill-soon', label:`🟠 ${comma(remain)}km 남음`, sort:remain };
-      else s = { cls:'', pill:'pill-ok', label:`🟢 ${comma(remain)}km 남음`, sort:remain };
-    }
+      else s = { cls:'', pill:'pill-ok', label:`🟢 ${comma(remain)}km 남음`, sort:remain }; }
     return { r, s };
   }).sort((a,b)=>a.s.sort-b.s.sort);
 }
@@ -448,37 +458,35 @@ function renderDue() {
   const root = $('#tab-due'); root.innerHTML = '';
   root.appendChild(carSelector());
   const list = reminderStatuses(curCarId);
-  if (!list.length) { root.appendChild(el(`<div class="empty">📅 등록된 만기/주기가 없어요.<br>＋ 로 추가하세요.</div>`)); return; }
+  if (!list.length) { root.appendChild(el(`<div class="empty">📅 등록된 만기/주기가 없어요.<br>＋ 로 추가하세요. (보험·검사·타이어 등)</div>`)); return; }
   for (const { r, s } of list) {
-    const detail = r.kind==='date'
-      ? (r.dueDate ? `만기일 ${fmtKDate(r.dueDate)}` : '날짜 미설정')
+    const detail = r.kind==='date' ? (r.dueDate ? `만기일 ${fmtKDate(r.dueDate)}` : '날짜 미설정')
       : `${comma(r.intervalKm)}km 주기 · 마지막 ${comma(r.lastOdo)}km`;
     const card = el(`<div class="list-card click ${s.cls}">
       <div class="top"><span class="nm">${esc(r.name)}</span>
         <span class="chip-cat">${r.kind==='date'?'📅 날짜':'🛣️ 주행거리'}</span>
         <span class="spacer"></span><span class="status-pill ${s.pill}">${esc(s.label)}</span></div>
-      <div class="sub">${detail}${r.memo?` · 📝 ${esc(r.memo)}`:''}</div>
-    </div>`);
+      <div class="sub">${detail}${r.memo?` · 📝 ${esc(r.memo)}`:''}</div></div>`);
     card.addEventListener('click', () => openReminderModal(r.id));
     root.appendChild(card);
   }
 }
 function openReminderModal(id=null) {
   const ed = id ? Store.data.reminders.find(r=>r.id===id) : null;
-  const r = ed || { kind:'date', name:'', dueDate:'', intervalKm:10000, lastOdo: latestOdo(curCarId), memo:'' };
+  const r = ed || { kind:'date', name:'', dueDate:'', intervalKm:15000, lastOdo: latestOdo(curCarId), memo:'' };
   const m = el(`<div class="modal-bg"><div class="modal">
     <h2>${ed?'📅 만기/주기 수정':'📅 만기/주기 추가'}</h2>
-    <div class="field"><label>이름 *</label><input id="r_name" value="${esc(r.name)}" placeholder="예: 자동차 보험, 엔진오일" /></div>
+    <div class="field"><label>이름 *</label><input id="r_name" value="${esc(r.name)}" placeholder="예: 자동차 보험, 정기검사, 타이어" /></div>
     <div class="field"><label>종류</label>
       <select id="r_kind" onchange="onRKind()">
         <option value="date" ${r.kind==='date'?'selected':''}>📅 날짜 만기 (보험·검사 등)</option>
-        <option value="km" ${r.kind==='km'?'selected':''}>🛣️ 주행거리 주기 (엔진오일 등)</option>
+        <option value="km" ${r.kind==='km'?'selected':''}>🛣️ 주행거리 주기 (타이어 등)</option>
       </select></div>
     <div id="rDateBox" class="field" style="${r.kind==='km'?'display:none':''}">
       <label>만기일</label><input id="r_due" type="date" value="${esc(r.dueDate)}" /></div>
     <div id="rKmBox" style="${r.kind==='km'?'':'display:none'}">
       <div class="field-row">
-        <div class="field"><label>교체 주기(km)</label><input id="r_interval" type="number" inputmode="numeric" value="${esc(r.intervalKm)}" /></div>
+        <div class="field"><label>주기(km)</label><input id="r_interval" type="number" inputmode="numeric" value="${esc(r.intervalKm)}" /></div>
         <div class="field"><label>마지막 교체 주행거리(km)</label><input id="r_lastodo" type="number" inputmode="numeric" value="${esc(r.lastOdo)}" /></div>
       </div></div>
     <div class="field"><label>📝 메모 (선택)</label><input id="r_memo" value="${esc(r.memo)}" /></div>
@@ -489,11 +497,7 @@ function openReminderModal(id=null) {
     </div></div></div>`);
   showModal(m);
 }
-function onRKind() {
-  const k = $('#r_kind').value;
-  $('#rDateBox').style.display = k==='km'?'none':'';
-  $('#rKmBox').style.display = k==='km'?'':'none';
-}
+function onRKind() { const k=$('#r_kind').value; $('#rDateBox').style.display=k==='km'?'none':''; $('#rKmBox').style.display=k==='km'?'':'none'; }
 function saveReminder(id) {
   const name = $('#r_name').value.trim();
   if (!name) { toast('이름을 입력해주세요'); return; }
@@ -501,7 +505,7 @@ function saveReminder(id) {
   const fields = kind==='date'
     ? { carId:curCarId, kind, name, dueDate: $('#r_due').value, memo: $('#r_memo').value.trim() }
     : { carId:curCarId, kind, name, intervalKm: Number($('#r_interval').value)||0, lastOdo: Number($('#r_lastodo').value)||0, memo: $('#r_memo').value.trim() };
-  if (id) { const r = Store.data.reminders.find(x=>x.id===id); Object.keys(r).forEach(k=>{ if(!(k in fields) && k!=='id') delete r[k]; }); Object.assign(r, fields); }
+  if (id) { const r = Store.data.reminders.find(x=>x.id===id); ['dueDate','intervalKm','lastOdo'].forEach(k=>delete r[k]); Object.assign(r, fields); }
   else Store.data.reminders.push({ id: Store.uid('r'), ...fields });
   Store.save(); closeModal(); toast('💾 저장!'); render();
 }
@@ -511,6 +515,7 @@ function delReminder(id) { if(confirm('이 항목을 삭제할까요?')){ Store.
 function renderSettings() {
   const root = $('#tab-settings'); root.innerHTML = '';
   const cSec = el(`<div><div class="sec-title">🚗 내 차량</div></div>`);
+  if (!Store.data.cars.length) cSec.appendChild(el(`<div class="muted" style="font-size:13.5px;margin-bottom:8px">아직 등록된 차량이 없어요.</div>`));
   Store.data.cars.forEach(c => {
     const card = el(`<div class="list-card click">
       <div class="top"><span class="nm">${esc(c.name)}</span>${c.plate?`<span class="chip-cat">${esc(c.plate)}</span>`:''}<span class="spacer"></span><span class="muted">✏️</span></div>
@@ -529,16 +534,16 @@ function renderSettings() {
   imp.querySelector('input').addEventListener('change', importBackup);
   bSec.append(exp, imp);
   root.appendChild(bSec);
-  root.appendChild(el(`<div class="muted" style="margin-top:24px;font-size:12.5px">차량 ${Store.data.cars.length}대 · 주유 ${Store.data.fuel.length}건 · 정비 ${Store.data.service.length}건 · 코드 ${esc(Store.code)}</div>`));
+  root.appendChild(el(`<div class="muted" style="margin-top:24px;font-size:12.5px">차량 ${Store.data.cars.length}대 · 충전 ${Store.data.charge.length}건 · 정비 ${Store.data.service.length}건 · 코드 ${esc(Store.code)}</div>`));
 }
 function openCarModal(id=null) {
   const ed = id ? Store.data.cars.find(c=>c.id===id) : null;
   const c = ed || { name:'', plate:'', memo:'' };
   const m = el(`<div class="modal-bg"><div class="modal">
-    <h2>${ed?'🚗 차량 수정':'🚗 차량 추가'}</h2>
-    <div class="field"><label>차 이름 *</label><input id="c_name" value="${esc(c.name)}" placeholder="예: 쏘렌토, 아내차" /></div>
+    <h2>${ed?'🚗 차량 수정':'🚗 차량 등록'}</h2>
+    <div class="field"><label>차 이름 *</label><input id="c_name" value="${esc(c.name)}" placeholder="예: 아이오닉5, 아내 EV6" /></div>
     <div class="field"><label>번호판 (선택)</label><input id="c_plate" value="${esc(c.plate)}" placeholder="예: 12가 3456" /></div>
-    <div class="field"><label>메모 (선택)</label><input id="c_memo" value="${esc(c.memo)}" /></div>
+    <div class="field"><label>메모 (선택)</label><input id="c_memo" value="${esc(c.memo)}" placeholder="예: 배터리 77kWh" /></div>
     <div class="actions">
       ${ed && Store.data.cars.length>1?`<button class="btn danger" onclick="delCar('${id}')">🗑️</button>`:''}
       <button class="btn" onclick="closeModal()">취소</button>
@@ -551,17 +556,24 @@ function saveCar(id) {
   if (!name) { toast('차 이름을 입력해주세요'); return; }
   const fields = { name, plate: $('#c_plate').value.trim(), memo: $('#c_memo').value.trim() };
   if (id) Object.assign(Store.data.cars.find(c=>c.id===id), fields);
-  else { const nc = { id: Store.uid('c'), ...fields }; Store.data.cars.push(nc); curCarId = nc.id; }
-  Store.save(); closeModal(); toast('💾 저장!'); render();
+  else {
+    const nc = { id: Store.uid('c'), ...fields }; Store.data.cars.push(nc); curCarId = nc.id;
+    // 첫 차량이면 기본 만기 항목 추가
+    if (Store.data.cars.length === 1) {
+      Store.data.reminders.push(
+        { id: Store.uid('r'), carId: nc.id, kind:'date', name:'자동차 보험 만기', dueDate:'', memo:'' },
+        { id: Store.uid('r'), carId: nc.id, kind:'date', name:'정기검사', dueDate:'', memo:'' });
+    }
+  }
+  Store.save(); closeModal(); toast('🚗 차량 등록 완료!'); ensureCar(); switchTab('summary');
 }
 function delCar(id) {
-  if (Store.data.cars.length<=1) { toast('차량은 최소 1대 필요해요'); return; }
   if (!confirm('이 차량과 모든 기록을 삭제할까요?')) return;
   Store.data.cars = Store.data.cars.filter(c=>c.id!==id);
-  Store.data.fuel = Store.data.fuel.filter(f=>f.carId!==id);
+  Store.data.charge = Store.data.charge.filter(f=>f.carId!==id);
   Store.data.service = Store.data.service.filter(s=>s.carId!==id);
   Store.data.reminders = Store.data.reminders.filter(r=>r.carId!==id);
-  curCarId = Store.data.cars[0].id;
+  curCarId = Store.data.cars[0]?.id || null;
   Store.save(); closeModal(); render();
 }
 function exportBackup() {
@@ -575,7 +587,7 @@ function importBackup(ev) {
   if (!confirm('현재 데이터를 덮어쓸까요?')) { ev.target.value=''; return; }
   const reader = new FileReader();
   reader.onload = e => { try { const d = JSON.parse(e.target.result);
-    Store.data = { cars:d.cars||[], fuel:d.fuel||[], service:d.service||[], reminders:d.reminders||[] };
+    Store.data = { cars:d.cars||[], charge:d.charge||d.fuel||[], service:d.service||[], reminders:d.reminders||[] };
     ensureCar(); Store.save(); render(); toast('✅ 불러오기 완료');
   } catch(err){ toast('파일을 읽지 못했어요 😢'); } };
   reader.readAsText(file);
