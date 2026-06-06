@@ -113,6 +113,7 @@
     <a href="vehicle.html">🚗 차량</a>
     <a href="schedule.html" class="on">📅 일정</a>
     <a href="shopping.html">🛒 장보기</a>
+    <a href="fines.html">💸 벌금</a>
   </div>
   <header>
     <span style="font-size:22px">📅</span>
@@ -194,7 +195,8 @@ const WD=['일','월','화','수','목','금','토'];
 function fmtKDate(s){ const d=parseDate(s); if(!d) return ''; return `${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`; }
 function fmtKFull(s){ const d=parseDate(s); if(!d) return ''; return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`; }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1800); }
-function eventsOn(iso){ return Store.data.events.filter(e=>e.date===iso).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99')); }
+function eventsOn(iso){ return Store.data.events.filter(e=> e.date<=iso && (e.end||e.date)>=iso ).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99')); }
+function rangeLabel(e){ if(e.end && e.end!==e.date){ const a=parseDate(e.date), b=parseDate(e.end); return `${a.getMonth()+1}/${a.getDate()}~${b.getMonth()+1}/${b.getDate()}`; } return ''; }
 
 /* ===================== 시작/코드 ===================== */
 function enterSpace() {
@@ -294,15 +296,15 @@ function openDay(iso) {
 function renderUp() {
   const root = $('#tab-up'); root.innerHTML = '';
   const today = todayISO();
-  const list = Store.data.events.filter(e=>e.date>=today).sort((a,b)=> a.date.localeCompare(b.date) || (a.time||'99').localeCompare(b.time||'99'));
+  const list = Store.data.events.filter(e=>(e.end||e.date)>=today).sort((a,b)=> a.date.localeCompare(b.date) || (a.time||'99').localeCompare(b.time||'99'));
   if (!list.length) { root.appendChild(el(`<div class="empty">📋 다가오는 일정이 없어요.<br>＋ 로 추가하세요 😺</div>`)); return; }
   let lastDate = '';
   for (const e of list) {
     if (e.date !== lastDate) { root.appendChild(el(`<div class="date-head">${fmtKDate(e.date)}${e.date===today?' · 오늘':''}</div>`)); lastDate = e.date; }
-    const c = catOf(e.cat);
+    const c = catOf(e.cat); const rl = rangeLabel(e);
     const card = el(`<div class="list-card">
       <span class="ev-dot" style="background:${c.color}"></span>
-      <div style="flex:1"><div class="nm">${e.time?`<span class="muted">${esc(e.time)}</span> `:''}${esc(e.title)}</div>
+      <div style="flex:1"><div class="nm">${e.time?`<span class="muted">${esc(e.time)}</span> `:''}${esc(e.title)}${rl?` <span class="muted" style="font-weight:600">📆 ${rl}</span>`:''}</div>
         <div class="sub"><span class="cat-pill" style="background:${c.color}">${esc(c.name)}</span>${e.memo?' '+esc(e.memo):''}</div></div>
     </div>`);
     card.addEventListener('click', ()=>openEventModal(e.id, e.date));
@@ -314,16 +316,17 @@ function renderUp() {
 let _evCat = '공통';
 function openEventModal(id=null, dateISO=null) {
   const ed = id ? Store.data.events.find(e=>e.id===id) : null;
-  const e = ed || { date: dateISO || todayISO(), time:'', title:'', cat:'공통', memo:'' };
+  const e = ed || { date: dateISO || todayISO(), end:'', time:'', title:'', cat:'공통', memo:'' };
   _evCat = e.cat || '공통';
   const catBtns = CATS.map(c=>`<button type="button" style="background:${c.color}" class="${c.key===_evCat?'sel':''}" onclick="pickCat(this,'${c.key}')">${c.name}</button>`).join('');
   const m = el(`<div class="modal-bg"><div class="modal">
     <h2>${ed?'✏️ 일정 수정':'➕ 일정 추가'}</h2>
     <div class="field"><label>📌 제목 *</label><input id="e_title" value="${esc(e.title)}" placeholder="예: 어린이집 상담, 부모님 생신" /></div>
     <div class="field-row">
-      <div class="field"><label>📅 날짜</label><input id="e_date" type="date" value="${esc(e.date)}" /></div>
-      <div class="field"><label>🕐 시간 (선택)</label><input id="e_time" type="time" value="${esc(e.time)}" /></div>
+      <div class="field"><label>📅 시작 날짜</label><input id="e_date" type="date" value="${esc(e.date)}" /></div>
+      <div class="field"><label>📅 종료 날짜</label><input id="e_end" type="date" value="${esc(e.end||e.date)}" /></div>
     </div>
+    <div class="field"><label>🕐 시간 (선택, 여러 날이면 비워두세요)</label><input id="e_time" type="time" value="${esc(e.time)}" /></div>
     <div class="field"><label>🎨 분류</label><div class="cat-pick" id="catPick">${catBtns}</div></div>
     <div class="field"><label>📝 메모 (선택)</label><textarea id="e_memo" placeholder="예: 준비물, 장소">${esc(e.memo)}</textarea></div>
     <div class="actions">
@@ -337,7 +340,10 @@ function pickCat(btn, key) { _evCat = key; $all('#catPick button').forEach(b=>b.
 function saveEvent(id) {
   const title = $('#e_title').value.trim();
   if (!title) { toast('제목을 입력해주세요 🐱'); return; }
-  const fields = { date: $('#e_date').value || todayISO(), time: $('#e_time').value, title, cat: _evCat, memo: $('#e_memo').value.trim() };
+  let date = $('#e_date').value || todayISO();
+  let end = $('#e_end').value || date;
+  if (end < date) end = date;
+  const fields = { date, end, time: $('#e_time').value, title, cat: _evCat, memo: $('#e_memo').value.trim() };
   if (id) Object.assign(Store.data.events.find(e=>e.id===id), fields);
   else Store.data.events.push({ id: Store.uid(), ...fields });
   Store.save(); closeModal(); toast('💾 저장!'); render();

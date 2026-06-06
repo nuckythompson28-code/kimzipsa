@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>💸 김집사 — 벌금</title>
+<style>
+  :root {
+    --bg: #f5f4fb; --card: #fff; --line: #e7e4f0; --text: #2a2440; --muted: #8a85a3;
+    --primary: #7c5cff; --primary-dark: #6344e0; --danger: #e0483b; --warn: #e8920c; --ok: #1f9d57; --pink:#ff7eb6;
+    --shadow: 0 1px 3px rgba(40,30,80,.08), 0 4px 16px rgba(40,30,80,.06);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; font-size: 15px; }
+
+  .modbar { display:flex; gap:5px; padding:7px 10px; background:#2a2440; overflow-x:auto; }
+  .modbar a { flex:0 0 auto; text-decoration:none; color:#cbc5e8; font-weight:700; font-size:13px; padding:6px 12px; border-radius:999px; white-space:nowrap; }
+  .modbar a.on { background:#7c5cff; color:#fff; }
+
+  header { position: sticky; top: 0; z-index: 50; background: var(--card); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 9px; padding: 11px 16px; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 800; }
+  header .code-chip { margin-left: auto; font-size: 12px; color: var(--muted); background: var(--bg);
+    border: 1px solid var(--line); padding: 4px 9px; border-radius: 999px; cursor: pointer; }
+
+  nav.tabs { position: sticky; top: 54px; z-index: 40; display: flex; background: var(--card); border-bottom: 1px solid var(--line); }
+  nav.tabs button { flex: 1; border: none; background: none; padding: 11px 2px; font-size: 13.5px;
+    color: var(--muted); border-bottom: 2.5px solid transparent; font-weight: 700; }
+  nav.tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  main { padding: 16px; max-width: 760px; margin: 0 auto; padding-bottom: 92px; }
+  .muted { color: var(--muted); }
+  .spacer { flex:1; }
+  .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 9px 14px; border-radius: 10px; font-size: 14px; font-weight: 700; }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.danger { color: var(--danger); border-color: #f1c4bf; }
+  .btn.sm { padding: 6px 11px; font-size: 13px; }
+  .empty { text-align: center; color: var(--muted); padding: 34px 10px; font-size: 14px; }
+  .chip-cat { font-size:11px; background:var(--bg); border:1px solid var(--line); padding:1px 8px; border-radius:999px; color:var(--muted); }
+  .sec-title { font-size:13px; font-weight:800; color:var(--muted); margin:18px 0 9px; }
+
+  .mhead { display:flex; align-items:center; justify-content:center; gap:14px; margin:2px 0 12px; }
+  .mhead .mt { font-size:17px; font-weight:800; min-width:120px; text-align:center; }
+  .mhead button { width:36px; height:36px; border-radius:50%; border:1px solid var(--line); background:var(--card); font-size:18px; font-weight:800; color:var(--primary); }
+
+  .total-card { background:linear-gradient(135deg,#ff9aa2,#ff7eb6); color:#fff; border-radius:16px; padding:18px; text-align:center; margin-bottom:14px; box-shadow:var(--shadow); }
+  .total-card .l { font-size:13px; opacity:.95; font-weight:700; }
+  .total-card .n { font-size:34px; font-weight:800; margin-top:2px; }
+
+  .bar-row { display:flex; align-items:center; gap:9px; margin-bottom:9px; }
+  .bar-row .bn { width:96px; font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bar-track { flex:1; background:var(--bg); border-radius:999px; height:24px; overflow:hidden; }
+  .bar-fill { height:100%; background:linear-gradient(90deg,#ffa8cf,#ff7eb6); border-radius:999px; display:flex; align-items:center; justify-content:flex-end; padding-right:9px; color:#fff; font-size:11.5px; font-weight:800; min-width:30px; white-space:nowrap; }
+  .stat-card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:15px; margin-bottom:12px; box-shadow:var(--shadow); }
+  .stat-card h3 { margin:0 0 12px; font-size:14.5px; }
+
+  .list-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:11px 13px; margin-bottom:8px; box-shadow:var(--shadow); cursor:pointer; }
+  .list-card .top { display:flex; align-items:center; gap:8px; }
+  .list-card .nm { font-weight:800; }
+  .list-card .amt { font-weight:800; color:var(--danger); }
+  .list-card .sub { font-size:12.5px; color:var(--muted); margin-top:3px; }
+
+  .fab { position: fixed; right: 18px; bottom: 18px; z-index: 60; background: var(--primary); color: #fff;
+    border: none; width: 58px; height: 58px; border-radius: 50%; font-size: 30px; line-height: 1; box-shadow: 0 6px 18px rgba(124,92,255,.45); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(30,22,60,.45); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+  @media (min-width: 600px) { .modal-bg { align-items: center; } }
+  .modal { background: var(--card); width: 100%; max-width: 480px; border-radius: 18px 18px 0 0; padding: 18px; max-height:92vh; overflow-y:auto; }
+  @media (min-width: 600px) { .modal { border-radius: 18px; } }
+  .modal h2 { margin: 0 0 14px; font-size: 17px; }
+  .field { margin-bottom: 12px; }
+  .field label { display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; font-weight:700; }
+  .field input, .field select { width:100%; padding:10px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .field-row { display:flex; gap:10px; } .field-row .field { flex:1; }
+  .member-pick { display:flex; gap:8px; flex-wrap:wrap; }
+  .member-pick button { border:1px solid var(--line); background:var(--bg); border-radius:999px; padding:9px 15px; font-size:14px; font-weight:700; }
+  .member-pick button.sel { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .modal .actions { display:flex; gap:8px; margin-top:8px; } .modal .actions .btn { flex:1; }
+
+  .start-wrap { max-width: 420px; margin: 7vh auto; padding: 24px; text-align: center; }
+  .start-wrap .logo { font-size: 56px; } .start-wrap h1 { font-size: 24px; margin: 6px 0 2px; font-weight: 800; }
+  .start-wrap p { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+  .start-wrap input { width: 100%; padding: 13px; border: 1px solid var(--line); border-radius: 12px; text-align: center; font-size: 16px; }
+  .start-wrap .btn { width: 100%; margin-top: 10px; }
+  .toast { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); background: #2a2440; color: #fff;
+    padding: 11px 20px; border-radius: 999px; font-size: 14px; z-index: 200; opacity: 0; transition: opacity .2s; pointer-events: none; font-weight: 600; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="startScreen" class="start-wrap">
+  <div class="logo">💸</div>
+  <h1>김집사 — 벌금</h1>
+  <p>가족 공유코드를 입력하세요 😺</p>
+  <input id="codeInput" placeholder="예: kim-house-7392" autocomplete="off" />
+  <button class="btn primary" onclick="enterSpace()">🚪 입장하기</button>
+</div>
+
+<div id="app" style="display:none">
+  <div class="modbar">
+    <a href="index.html">🏠 홈</a>
+    <a href="butler.html">🧹 집안일</a>
+    <a href="storage.html">📦 창고</a>
+    <a href="vehicle.html">🚗 차량</a>
+    <a href="schedule.html">📅 일정</a>
+    <a href="shopping.html">🛒 장보기</a>
+    <a href="fines.html" class="on">💸 벌금</a>
+  </div>
+  <header>
+    <span style="font-size:22px">💸</span>
+    <h1>벌금</h1>
+    <span class="code-chip" id="codeChip" onclick="changeCode()" title="코드 변경"></span>
+  </header>
+  <nav class="tabs">
+    <button data-tab="now" class="active" onclick="switchTab('now')">💸 현황</button>
+    <button data-tab="rules" onclick="switchTab('rules')">📋 규칙</button>
+    <button data-tab="settings" onclick="switchTab('settings')">⚙️ 설정</button>
+  </nav>
+  <main>
+    <div id="tab-now"></div>
+    <div id="tab-rules" style="display:none"></div>
+    <div id="tab-settings" style="display:none"></div>
+  </main>
+  <button class="fab" id="fab" onclick="openLogModal()" title="벌금 부과">＋</button>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+
+<!-- Firebase 연결 -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8",
+    authDomain: "kimzipsa-bfe26.firebaseapp.com",
+    databaseURL: "https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "kimzipsa-bfe26", storageBucket: "kimzipsa-bfe26.firebasestorage.app",
+    messagingSenderId: "99764860737", appId: "1:99764860737:web:e0450a5ef9e0954a6ad3c0"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+</script>
+
+<script>
+const Store = {
+  code: null, ref: null, _ready: false,
+  data: { rules: [], members: [], logs: [] },
+  init(code, onReady) {
+    this.code = code; this._ready = false;
+    this.ref = db.ref('fines/' + code);
+    this.ref.on('value', snap => {
+      const val = snap.val();
+      if (val && (val.rules || val.logs || val.members)) this.data = val; else { this.data = this._seed(); this.ref.set(this.data); }
+      this.data.rules ||= []; this.data.members ||= ['🧔 남편','👩 아내']; this.data.logs ||= [];
+      if (!this._ready) { this._ready = true; onReady && onReady(); } else { render(); }
+    }, () => toast('연결 오류 😢 인터넷을 확인해주세요'));
+  },
+  _seed() {
+    return {
+      rules: [{ id:'fr1', name:'화장실 물 안 내림', amount:100000 }],
+      members: ['🧔 남편','👩 아내'],
+      logs: []
+    };
+  },
+  save() { if (this.ref) this.ref.set(this.data); },
+  uid(p){ return (p||'f') + Math.random().toString(36).slice(2, 9) + this.data.logs.length; },
+};
+
+function $(sel, root=document) { return root.querySelector(sel); }
+function $all(sel, root=document) { return [...root.querySelectorAll(sel)]; }
+function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function toISO(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
+function todayDate(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+const WD=['일','월','화','수','목','금','토'];
+function fmtKDate(s){ const [y,m,d]=String(s).split('-'); return `${+m}월 ${+d}일`; }
+function won(n){ return (Number(n)||0).toLocaleString('ko-KR') + '원'; }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1800); }
+
+function enterSpace() {
+  const code = $('#codeInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if (!code) { toast('코드를 입력해주세요 🐱'); return; }
+  localStorage.setItem('kimzipsa_code', code);
+  $('#startScreen').style.display='none'; $('#app').style.display='';
+  $('#codeChip').textContent = '😺 ' + code;
+  toast('연결 중... 💸');
+  Store.init(code, () => switchTab('now'));
+}
+function changeCode() {
+  if (confirm('홈으로 가서 다른 코드로 바꿀까요?')) { localStorage.removeItem('kimzipsa_code'); location.href='index.html'; }
+}
+
+let currentTab = 'now';
+function switchTab(tab) {
+  currentTab = tab;
+  $all('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ['now','rules','settings'].forEach(t => $('#tab-'+t).style.display=(t===tab)?'':'none');
+  $('#fab').style.display = (tab==='settings') ? 'none' : '';
+  render();
+}
+function render() {
+  if (currentTab === 'now') renderNow();
+  else if (currentTab === 'rules') renderRules();
+  else if (currentTab === 'settings') renderSettings();
+}
+
+/* ===== 현황 (월별) ===== */
+let viewY, viewM;
+(function(){ const t=todayDate(); viewY=t.getFullYear(); viewM=t.getMonth(); })();
+function moveMonth(d){ viewM+=d; if(viewM<0){viewM=11;viewY--;} if(viewM>11){viewM=0;viewY++;} renderNow(); }
+function monthLogs(){ const pre=`${viewY}-${pad(viewM+1)}`; return Store.data.logs.filter(l=>(l.date||'').startsWith(pre)).sort((a,b)=>b.date.localeCompare(a.date)); }
+function renderNow() {
+  const root = $('#tab-now'); root.innerHTML = '';
+  const head = el(`<div class="mhead"><button id="pm">‹</button><div class="mt">${viewY}년 ${viewM+1}월</div><button id="nm">›</button></div>`);
+  root.appendChild(head);
+  $('#pm',head).addEventListener('click',()=>moveMonth(-1));
+  $('#nm',head).addEventListener('click',()=>moveMonth(1));
+
+  const logs = monthLogs();
+  const total = logs.reduce((s,l)=>s+(Number(l.amount)||0),0);
+  root.appendChild(el(`<div class="total-card"><div class="l">💸 ${viewM+1}월 총 벌금</div><div class="n">${won(total)}</div></div>`));
+
+  // 사람별
+  if (logs.length) {
+    const byP = {}; logs.forEach(l=>{ const p=l.person||'미지정'; byP[p]=(byP[p]||0)+(Number(l.amount)||0); });
+    const arr = Object.entries(byP).sort((a,b)=>b[1]-a[1]); const mx=arr[0][1];
+    const pc = el(`<div class="stat-card"><h3>🙈 누가 많이 냈나</h3></div>`);
+    arr.forEach(([n,v])=> pc.appendChild(el(`<div class="bar-row"><div class="bn">${esc(n)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(12,v/mx*100)}%">${won(v)}</div></div></div>`)));
+    root.appendChild(pc);
+  }
+
+  root.appendChild(el(`<div class="sec-title">📜 ${viewM+1}월 내역 (${logs.length})</div>`));
+  if (!logs.length) { root.appendChild(el(`<div class="empty">이 달은 벌금이 없어요 😇<br>＋ 로 부과할 수 있어요</div>`)); return; }
+  logs.forEach(l => {
+    const card = el(`<div class="list-card">
+      <div class="top"><span class="nm">${esc(l.ruleName)}</span><span class="spacer"></span><span class="amt">${won(l.amount)}</span></div>
+      <div class="sub">🐾 ${esc(l.person||'미지정')} · ${fmtKDate(l.date)}${l.memo?` · ${esc(l.memo)}`:''}</div></div>`);
+    card.addEventListener('click', ()=>openLogModal(l.id));
+    root.appendChild(card);
+  });
+}
+
+/* ===== 벌금 부과/수정 ===== */
+let _logPerson = '';
+function openLogModal(id=null) {
+  if (!Store.data.rules.length && !id) { toast('먼저 규칙 탭에서 벌금 규칙을 만들어주세요'); switchTab('rules'); return; }
+  const ed = id ? Store.data.logs.find(l=>l.id===id) : null;
+  const l = ed || { ruleName: Store.data.rules[0]?.name||'', amount: Store.data.rules[0]?.amount||0, person: Store.data.members[0]||'', date: toISO(todayDate()), memo:'' };
+  _logPerson = l.person || Store.data.members[0] || '';
+  const ruleOpts = Store.data.rules.map(r=>`<option value="${esc(r.name)}" data-amt="${r.amount}" ${r.name===l.ruleName?'selected':''}>${esc(r.name)} (${won(r.amount)})</option>`).join('') + `<option value="__custom__">✏️ 직접 입력</option>`;
+  const memberBtns = Store.data.members.map(m=>`<button type="button" class="${m===_logPerson?'sel':''}" onclick="pickPerson(this,'${esc(m).replace(/'/g,"\\'")}')">${esc(m)}</button>`).join('');
+  const m = el(`<div class="modal-bg"><div class="modal">
+    <h2>${ed?'💸 벌금 수정':'💸 벌금 부과'}</h2>
+    <div class="field"><label>📋 규칙</label><select id="l_rule" onchange="onRuleChange()">${ruleOpts}</select></div>
+    <div class="field" id="customNameBox" style="display:none"><label>벌금 이름</label><input id="l_name" value="${esc(ed&&!Store.data.rules.some(r=>r.name===l.ruleName)?l.ruleName:'')}" placeholder="예: 늦잠" /></div>
+    <div class="field-row">
+      <div class="field"><label>💰 금액(원)</label><input id="l_amount" type="number" inputmode="numeric" value="${l.amount}" /></div>
+      <div class="field"><label>📅 날짜</label><input id="l_date" type="date" value="${esc(l.date)}" /></div>
+    </div>
+    <div class="field"><label>🐾 누가?</label><div class="member-pick" id="memberPick">${memberBtns}
+      <button type="button" onclick="addMemberQuick()">＋ 추가</button></div></div>
+    <div class="field"><label>📝 메모 (선택)</label><input id="l_memo" value="${esc(l.memo)}" /></div>
+    <div class="actions">
+      ${ed?`<button class="btn danger" onclick="delLog('${id}')">🗑️</button>`:''}
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="saveLog('${id||''}')">💾 저장</button>
+    </div></div></div>`);
+  showModal(m);
+  onRuleChange(true);
+}
+function onRuleChange(initial) {
+  const sel = $('#l_rule'); const v = sel.value;
+  if (v === '__custom__') { $('#customNameBox').style.display=''; }
+  else { $('#customNameBox').style.display='none';
+    if (!initial) { const amt = sel.selectedOptions[0].dataset.amt; if(amt) $('#l_amount').value = amt; } }
+}
+function pickPerson(btn, name) { _logPerson = name; $all('#memberPick button').forEach(b=>b.classList.remove('sel')); btn.classList.add('sel'); }
+function addMemberQuick() {
+  const name = prompt('가족 구성원 이름 (이모지 붙여도 좋아요 😺)'); if(!name||!name.trim()) return;
+  const n = name.trim(); if(!Store.data.members.includes(n)){ Store.data.members.push(n); Store.save(); }
+  _logPerson = n; const pick=$('#memberPick'); const addBtn=pick.lastElementChild;
+  const b = el(`<button type="button" class="sel">${esc(n)}</button>`); b.addEventListener('click',()=>pickPerson(b,n));
+  $all('#memberPick button').forEach(x=>x.classList.remove('sel')); pick.insertBefore(b, addBtn);
+}
+function saveLog(id) {
+  const sel = $('#l_rule'); let ruleName = sel.value;
+  if (ruleName === '__custom__') { ruleName = $('#l_name').value.trim(); if(!ruleName){ toast('벌금 이름을 입력해주세요'); return; } }
+  const amount = Number($('#l_amount').value)||0;
+  if (!amount) { toast('금액을 입력해주세요'); return; }
+  const fields = { ruleName, amount, person:_logPerson, date: $('#l_date').value||toISO(todayDate()), memo: $('#l_memo').value.trim() };
+  if (id) Object.assign(Store.data.logs.find(l=>l.id===id), fields);
+  else Store.data.logs.push({ id: Store.uid('l'), ...fields });
+  Store.save(); closeModal(); toast('💸 기록했어요!'); render();
+}
+function delLog(id) { if(confirm('이 벌금 기록을 삭제할까요?')){ Store.data.logs=Store.data.logs.filter(l=>l.id!==id); Store.save(); closeModal(); render(); } }
+
+/* ===== 규칙 ===== */
+function renderRules() {
+  const root = $('#tab-rules'); root.innerHTML = '';
+  root.appendChild(el(`<div class="sec-title">📋 벌금 규칙</div>`));
+  if (!Store.data.rules.length) root.appendChild(el(`<div class="muted" style="font-size:13px;margin-bottom:8px">규칙이 없어요. 추가해보세요!</div>`));
+  Store.data.rules.forEach(r => {
+    const card = el(`<div class="list-card"><div class="top"><span class="nm">${esc(r.name)}</span><span class="spacer"></span><span class="amt">${won(r.amount)}</span></div></div>`);
+    card.addEventListener('click', ()=>openRuleModal(r.id));
+    root.appendChild(card);
+  });
+  const add = el(`<button class="btn primary sm" style="margin-top:4px">＋ 규칙 추가</button>`);
+  add.addEventListener('click', ()=>openRuleModal());
+  root.appendChild(add);
+}
+function openRuleModal(id=null) {
+  const ed = id ? Store.data.rules.find(r=>r.id===id) : null;
+  const r = ed || { name:'', amount:10000 };
+  const m = el(`<div class="modal-bg"><div class="modal">
+    <h2>${ed?'📋 규칙 수정':'📋 규칙 추가'}</h2>
+    <div class="field"><label>벌금 사유 *</label><input id="r_name" value="${esc(r.name)}" placeholder="예: 화장실 물 안 내림" /></div>
+    <div class="field"><label>💰 금액(원)</label><input id="r_amount" type="number" inputmode="numeric" value="${r.amount}" /></div>
+    <div class="actions">
+      ${ed?`<button class="btn danger" onclick="delRule('${id}')">🗑️</button>`:''}
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="saveRule('${id||''}')">💾 저장</button>
+    </div></div></div>`);
+  showModal(m);
+}
+function saveRule(id) {
+  const name = $('#r_name').value.trim(); if(!name){ toast('사유를 입력해주세요'); return; }
+  const amount = Number($('#r_amount').value)||0;
+  if (id) Object.assign(Store.data.rules.find(r=>r.id===id), { name, amount });
+  else Store.data.rules.push({ id: Store.uid('r'), name, amount });
+  Store.save(); closeModal(); toast('💾 저장!'); render();
+}
+function delRule(id) { if(confirm('이 규칙을 삭제할까요? (기존 기록은 남아요)')){ Store.data.rules=Store.data.rules.filter(r=>r.id!==id); Store.save(); closeModal(); render(); } }
+
+/* ===== 설정 ===== */
+function renderSettings() {
+  const root = $('#tab-settings'); root.innerHTML = '';
+  const mSec = el(`<div><div class="sec-title">👨‍👩‍👧 가족 구성원</div></div>`);
+  const wrap = el(`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>`);
+  Store.data.members.forEach(m => {
+    const chip = el(`<span class="chip-cat" style="padding:6px 10px;font-size:13px">${esc(m)} <a href="#" style="color:var(--danger);text-decoration:none">✕</a></span>`);
+    chip.querySelector('a').addEventListener('click', e=>{ e.preventDefault(); if(confirm(`'${m}' 뺄까요?`)){ Store.data.members=Store.data.members.filter(x=>x!==m); Store.save(); render(); } });
+    wrap.appendChild(chip);
+  });
+  const addM = el(`<button class="btn sm">＋ 구성원 추가</button>`);
+  addM.addEventListener('click', ()=>{ const n=prompt('구성원 이름 (이모지 가능 😺)'); if(n&&n.trim()&&!Store.data.members.includes(n.trim())){ Store.data.members.push(n.trim()); Store.save(); render(); } });
+  wrap.appendChild(addM); mSec.appendChild(wrap); root.appendChild(mSec);
+
+  const bSec = el(`<div style="margin-top:24px"><div class="sec-title">💾 백업</div></div>`);
+  const exp = el(`<button class="btn" style="margin-right:8px">⬇️ 내보내기</button>`); exp.addEventListener('click', exportBackup);
+  const imp = el(`<label class="btn" style="display:inline-block">⬆️ 불러오기<input type="file" accept="application/json" style="display:none"></label>`);
+  imp.querySelector('input').addEventListener('change', importBackup);
+  bSec.append(exp, imp); root.appendChild(bSec);
+  root.appendChild(el(`<div class="muted" style="margin-top:24px;font-size:12.5px">규칙 ${Store.data.rules.length}개 · 기록 ${Store.data.logs.length}건 · 코드 ${esc(Store.code)}</div>`));
+}
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(Store.data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); const d = new Date();
+  a.href = url; a.download = `벌금백업_${Store.code}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`;
+  a.click(); URL.revokeObjectURL(url); toast('💾 백업 저장!');
+}
+function importBackup(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  if (!confirm('현재 데이터를 덮어쓸까요?')) { ev.target.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = e => { try { const d = JSON.parse(e.target.result);
+    Store.data = { rules:d.rules||[], members:d.members||['🧔 남편','👩 아내'], logs:d.logs||[] };
+    Store.save(); render(); toast('✅ 불러오기 완료');
+  } catch(err){ toast('파일을 읽지 못했어요 😢'); } };
+  reader.readAsText(file);
+}
+
+function showModal(node){ closeModal(); node.addEventListener('click', e=>{ if(e.target===node) closeModal(); }); $('#modalRoot').appendChild(node); }
+function closeModal(){ $('#modalRoot').innerHTML=''; }
+
+(function boot(){
+  const code = localStorage.getItem('kimzipsa_code');
+  if (code) { $('#codeInput').value = code; enterSpace(); }
+})();
+</script>
+</body>
+</html>

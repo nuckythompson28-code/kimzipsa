@@ -33,7 +33,9 @@
   .btn.sm { padding: 6px 11px; font-size: 13px; }
   .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
 
-  .addbar { display:flex; gap:8px; margin-bottom:14px; position:sticky; top:54px; z-index:30; background:var(--bg); padding:10px 0; }
+  .addwrap { position:sticky; top:54px; z-index:30; background:var(--bg); padding:10px 0; }
+  .preset { width:100%; padding:11px; border:1px solid var(--primary); border-radius:10px; background:#f3efff; color:var(--primary); font-weight:800; margin-bottom:8px; }
+  .addbar { display:flex; gap:8px; }
   .addbar input { flex:1; padding:11px; border:1px solid var(--line); border-radius:10px; }
   .addbar select { padding:0 8px; border:1px solid var(--line); border-radius:10px; background:#fff; font-weight:700; }
   .addbar button { padding:0 16px; }
@@ -87,6 +89,7 @@
     <a href="vehicle.html">🚗 차량</a>
     <a href="schedule.html">📅 일정</a>
     <a href="shopping.html" class="on">🛒 장보기</a>
+    <a href="fines.html">💸 벌금</a>
   </div>
   <header>
     <span style="font-size:22px">🛒</span>
@@ -94,10 +97,13 @@
     <span class="code-chip" id="codeChip" onclick="changeCode()" title="코드 변경"></span>
   </header>
   <main>
-    <div class="addbar">
-      <select id="addCat"></select>
-      <input id="addInput" placeholder="살 것 입력 후 Enter" autocomplete="off" />
-      <button class="btn primary" onclick="quickAdd()">추가</button>
+    <div class="addwrap">
+      <select class="preset" id="presetSel" onchange="addPreset(this.value); this.selectedIndex=0;"></select>
+      <div class="addbar">
+        <select id="addCat"></select>
+        <input id="addInput" placeholder="직접 입력 후 Enter" autocomplete="off" />
+        <button class="btn primary" onclick="quickAdd()">추가</button>
+      </div>
     </div>
     <div id="list"></div>
   </main>
@@ -114,10 +120,8 @@
     apiKey: "AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8",
     authDomain: "kimzipsa-bfe26.firebaseapp.com",
     databaseURL: "https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "kimzipsa-bfe26",
-    storageBucket: "kimzipsa-bfe26.firebasestorage.app",
-    messagingSenderId: "99764860737",
-    appId: "1:99764860737:web:e0450a5ef9e0954a6ad3c0"
+    projectId: "kimzipsa-bfe26", storageBucket: "kimzipsa-bfe26.firebasestorage.app",
+    messagingSenderId: "99764860737", appId: "1:99764860737:web:e0450a5ef9e0954a6ad3c0"
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
@@ -128,7 +132,25 @@ const CATS = [
   { key:'식품', emoji:'🥦' }, { key:'생필품', emoji:'🧻' },
   { key:'주방', emoji:'🍳' }, { key:'기타', emoji:'🛍️' },
 ];
-function catEmoji(k){ return (CATS.find(c=>c.key===k)||CATS[CATS.length-1]).emoji; }
+// 코스트코 자주 사는 것 (품목별 이모지)
+const PRESET = [
+  {n:'아보카도오일', e:'🥑', c:'식품'}, {n:'계란', e:'🥚', c:'식품'}, {n:'로티세리 치킨', e:'🍗', c:'식품'},
+  {n:'바나나', e:'🍌', c:'식품'}, {n:'양파', e:'🧅', c:'식품'}, {n:'우유', e:'🥛', c:'식품'},
+  {n:'치즈', e:'🧀', c:'식품'}, {n:'버터', e:'🧈', c:'식품'}, {n:'그릭요거트', e:'🥛', c:'식품'},
+  {n:'소고기', e:'🥩', c:'식품'}, {n:'삼겹살', e:'🥓', c:'식품'}, {n:'연어', e:'🐟', c:'식품'},
+  {n:'새우', e:'🦐', c:'식품'}, {n:'블루베리', e:'🫐', c:'식품'}, {n:'사과', e:'🍎', c:'식품'},
+  {n:'아보카도', e:'🥑', c:'식품'}, {n:'토마토', e:'🍅', c:'식품'}, {n:'양상추', e:'🥬', c:'식품'},
+  {n:'감자', e:'🥔', c:'식품'}, {n:'마늘', e:'🧄', c:'식품'}, {n:'커피 원두', e:'☕', c:'식품'},
+  {n:'올리브오일', e:'🫒', c:'식품'}, {n:'쌀', e:'🍚', c:'식품'}, {n:'베이글', e:'🥯', c:'식품'},
+  {n:'식빵', e:'🍞', c:'식품'}, {n:'견과류', e:'🥜', c:'식품'}, {n:'초콜릿', e:'🍫', c:'식품'},
+  {n:'탄산수', e:'🥤', c:'식품'}, {n:'만두', e:'🥟', c:'식품'}, {n:'피자', e:'🍕', c:'식품'},
+  {n:'식기세척기 세제', e:'🧼', c:'주방'}, {n:'주방세제', e:'🧴', c:'주방'}, {n:'키친타올', e:'🧻', c:'주방'},
+  {n:'지퍼백', e:'🧊', c:'주방'}, {n:'화장지', e:'🧻', c:'생필품'}, {n:'물티슈', e:'🧖', c:'생필품'},
+  {n:'세탁세제', e:'🧴', c:'생필품'}, {n:'섬유유연제', e:'🧴', c:'생필품'}, {n:'샴푸', e:'🧴', c:'생필품'},
+  {n:'치약', e:'🪥', c:'생필품'}, {n:'건전지', e:'🔋', c:'기타'},
+];
+function presetOf(name){ return PRESET.find(p=>p.n===name); }
+function emojiFor(name, cat){ const p=presetOf(name); if(p) return p.e; return (CATS.find(c=>c.key===cat)||CATS[CATS.length-1]).emoji; }
 
 const Store = {
   code: null, ref: null, _ready: false, data: { items: [] },
@@ -145,7 +167,6 @@ const Store = {
 };
 
 function $(sel, root=document) { return root.querySelector(sel); }
-function $all(sel, root=document) { return [...root.querySelectorAll(sel)]; }
 function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1600); }
@@ -157,6 +178,8 @@ function enterSpace() {
   $('#startScreen').style.display='none'; $('#app').style.display='';
   $('#codeChip').textContent = '😺 ' + code;
   $('#addCat').innerHTML = CATS.map(c=>`<option value="${c.key}">${c.emoji} ${c.key}</option>`).join('');
+  $('#presetSel').innerHTML = `<option value="">🛒 코스트코 자주 사는 것 선택…</option>` +
+    PRESET.map(p=>`<option value="${esc(p.n)}">${p.e} ${esc(p.n)}</option>`).join('');
   $('#addInput').addEventListener('keydown', e=>{ if(e.key==='Enter') quickAdd(); });
   toast('연결 중... 🛒');
   Store.init(code, () => render());
@@ -169,7 +192,7 @@ function render() {
   const root = $('#list'); root.innerHTML = '';
   const todo = Store.data.items.filter(i=>!i.done);
   const done = Store.data.items.filter(i=>i.done);
-  if (!Store.data.items.length) { root.appendChild(el(`<div class="empty">🛒 아직 살 것이 없어요.<br>위에 입력해서 추가하세요!</div>`)); return; }
+  if (!Store.data.items.length) { root.appendChild(el(`<div class="empty">🛒 아직 살 것이 없어요.<br>위 드롭다운에서 고르거나 직접 입력하세요!</div>`)); return; }
 
   root.appendChild(el(`<div class="sec-title">🛒 살 것 (${todo.length})</div>`));
   if (!todo.length) root.appendChild(el(`<div class="muted" style="font-size:13px;margin-bottom:8px">다 담았어요! 😺</div>`));
@@ -189,17 +212,29 @@ function itemRow(i) {
   const chk = el(`<div class="sh-check ${i.done?'on':''}">${i.done?'✓':''}</div>`);
   chk.addEventListener('click', ()=>toggle(i.id));
   row.appendChild(chk);
-  const body = el(`<div class="body"><div class="nm"><span class="cat-emoji">${catEmoji(i.cat)}</span> ${esc(i.name)}</div>
+  const emo = i.emoji || emojiFor(i.name, i.cat);
+  const body = el(`<div class="body"><div class="nm"><span class="cat-emoji">${emo}</span> ${esc(i.name)}</div>
     ${i.note?`<div class="sub">${esc(i.note)}</div>`:''}</div>`);
   body.addEventListener('click', ()=>openEdit(i.id));
   row.appendChild(body);
   return row;
 }
+function addItem(name, cat, emoji) {
+  if (Store.data.items.some(i=>!i.done && i.name===name)) { toast('이미 목록에 있어요'); return; }
+  Store.data.items.unshift({ id: Store.uid(), name, note:'', cat, emoji: emoji||emojiFor(name,cat), done:false, at: Date.now() });
+  Store.save(); render();
+}
 function quickAdd() {
   const inp = $('#addInput'); const name = inp.value.trim();
   if (!name) return;
-  Store.data.items.unshift({ id: Store.uid(), name, note:'', cat: $('#addCat').value, done:false, at: Date.now() });
-  Store.save(); inp.value=''; inp.focus(); render();
+  addItem(name, $('#addCat').value, emojiFor(name, $('#addCat').value));
+  inp.value=''; inp.focus();
+}
+function addPreset(name) {
+  if (!name) return;
+  const p = presetOf(name); if (!p) return;
+  addItem(p.n, p.c, p.e);
+  toast(`${p.e} ${p.n} 담았어요`);
 }
 function toggle(id) { const i = Store.data.items.find(x=>x.id===id); if(i){ i.done=!i.done; Store.save(); render(); } }
 function clearDone() { if(confirm('담은(완료) 항목을 목록에서 비울까요?')){ Store.data.items = Store.data.items.filter(i=>!i.done); Store.save(); render(); } }
@@ -222,7 +257,7 @@ function openEdit(id) {
 function saveEdit(id) {
   const i = Store.data.items.find(x=>x.id===id); if(!i) return;
   const name = $('#m_name').value.trim(); if(!name){ toast('이름을 입력해주세요'); return; }
-  i.name=name; i.cat=$('#m_cat').value; i.note=$('#m_note').value.trim();
+  i.name=name; i.cat=$('#m_cat').value; i.note=$('#m_note').value.trim(); i.emoji=emojiFor(name,i.cat);
   Store.save(); closeModal(); render();
 }
 function delItem(id) { Store.data.items = Store.data.items.filter(i=>i.id!==id); Store.save(); closeModal(); render(); }

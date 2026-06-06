@@ -78,6 +78,7 @@
         <a class="card" href="shopping.html"><span class="emoji">🛒</span><span class="t">장보기</span><span class="b">실시간 공유 목록</span><span class="badge" id="b-shop" style="display:none"></span></a>
         <a class="card" href="storage.html"><span class="emoji">📦</span><span class="t">창고</span><span class="b">물품 어디 있나</span><span class="badge" id="b-stor" style="display:none"></span></a>
         <a class="card" href="vehicle.html"><span class="emoji">🚗</span><span class="t">차량</span><span class="b">충전·정비·만기</span><span class="badge" id="b-veh" style="display:none"></span></a>
+        <a class="card" href="fines.html"><span class="emoji">💸</span><span class="t">벌금</span><span class="b">규칙·월별 벌금</span><span class="badge" id="b-fine" style="display:none"></span></a>
       </div>
       <div class="code-line">😺 우리 가족 코드: <b id="curCode"></b> · <a onclick="changeCode()">변경</a></div>
     </div>
@@ -120,7 +121,7 @@
   function addInterval(iso,n,unit){const d=parseD(iso);if(unit==='day')d.setDate(d.getDate()+n);else if(unit==='week')d.setDate(d.getDate()+n*7);else if(unit==='month'){const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,dim));}else if(unit==='year')d.setFullYear(d.getFullYear()+n);return toISO(d);}
 
   async function loadDash(code){
-    const paths=['chores','schedule','shopping','storage','vehicle'];
+    const paths=['chores','schedule','shopping','storage','vehicle','fines'];
     let data={};
     try {
       const snaps=await Promise.all(paths.map(p=>db.ref(p+'/'+code).once('value')));
@@ -167,11 +168,17 @@
     html+=sec('🛒','장보기','shopping.html',shopTodo,i=>`<div class="ds-item">${escape2(i.name)}</div>`,'살 것 없음');
     html+=sec('⏰','유통기한 임박','storage.html',expSoon,x=>`<div class="ds-item">${escape2(x.name)}${pill(x.du<0?`${-x.du}일 지남`:`${x.du}일`,x.du<0)}</div>`,'임박 항목 없음');
     html+=sec('🚗','차량 만기','vehicle.html',vdues,v=>`<div class="ds-item">${escape2(v.name)}${pill(v.label,v.over)}</div>`,'임박 항목 없음');
+    // 이번 달 벌금
+    const ym=`${t.getFullYear()}-${pad(t.getMonth()+1)}`;
+    const fineLogs=(d.fines.logs||[]).filter(l=>String(l.date||'').startsWith(ym));
+    const fineTotal=fineLogs.reduce((s,l)=>s+(+l.amount||0),0);
+    html+=`<div class="ds"><div class="h">💸 이번 달 벌금<a href="fines.html">열기 ›</a></div>`+
+      (fineTotal?`<div class="ds-item"><b>합계</b><b style="margin-left:auto;color:var(--danger)">${fineTotal.toLocaleString('ko-KR')}원</b></div>`:`<div class="none">이번 달 벌금 없음 😇</div>`)+`</div>`;
     dash.innerHTML=html;
 
     // 카드 뱃지
     badge('b-chore',chores.length); badge('b-sch',events.length); badge('b-shop',shopTodo.length);
-    badge('b-stor',expSoon.length); badge('b-veh',vdues.length);
+    badge('b-stor',expSoon.length); badge('b-veh',vdues.length); badge('b-fine',fineLogs.length);
   }
   function badge(id,n){ const e=$('#'+id); if(n>0){e.textContent=n;e.style.display='';}else e.style.display='none'; }
   function escape2(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
