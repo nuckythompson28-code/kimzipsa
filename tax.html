@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🧾 세금 캘린더 — 김집사</title>
+<style>
+  :root {
+    --bg: #f5f4fb; --card: #fff; --line: #e7e4f0; --text: #2a2440; --muted: #8a85a3;
+    --primary: #7c5cff; --primary-dark: #6344e0; --danger: #e0483b; --warn: #e8920c; --ok: #1f9d57;
+    --pink: #ff7eb6; --shadow: 0 1px 3px rgba(40,30,80,.08), 0 4px 16px rgba(40,30,80,.06);
+    --biz: #2f8fd6;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; font-size: 15px; }
+
+  .modbar { display:flex; gap:5px; padding:7px 10px; background:#2a2440; overflow-x:auto; }
+  .modbar a { flex:0 0 auto; text-decoration:none; color:#cbc5e8; font-weight:700; font-size:13px; padding:6px 12px; border-radius:999px; white-space:nowrap; }
+  .modbar a.on { background:#7c5cff; color:#fff; }
+
+  header { position: sticky; top: 0; z-index: 50; background: var(--card); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 9px; padding: 11px 16px; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 800; letter-spacing: -.3px; }
+  header .code-chip { margin-left: auto; font-size: 12px; color: var(--muted); background: var(--bg);
+    border: 1px solid var(--line); padding: 4px 9px; border-radius: 999px; cursor: pointer; }
+
+  main { padding: 16px; max-width: 760px; margin: 0 auto; padding-bottom: 92px; }
+
+  .muted { color: var(--muted); }
+  .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 9px 14px;
+    border-radius: 10px; font-size: 14px; font-weight: 700; }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.primary:hover { background: var(--primary-dark); }
+  .btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .btn.danger { color: var(--danger); border-color: #f1c4bf; }
+  .btn.sm { padding: 6px 11px; font-size: 13px; }
+  .empty { text-align: center; color: var(--muted); padding: 44px 10px; font-size: 14.5px; }
+
+  .sec-title { font-size: 13px; font-weight: 800; color: var(--muted); margin: 18px 0 9px; }
+
+  .filters { display:flex; gap:7px; margin-bottom:4px; }
+  .filters button { flex:1; border:1px solid var(--line); background:var(--card); border-radius:10px; padding:9px; font-weight:800; color:var(--muted); font-size:13.5px; }
+  .filters button.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+  .gauge { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 15px; margin:14px 0; box-shadow:var(--shadow); text-align:center; }
+  .gauge .big { font-size:26px; font-weight:800; color:var(--primary); }
+  .gauge .sub { font-size:13px; color:var(--muted); }
+
+  .tax-card { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--line);
+    border-radius: 13px; padding: 12px 14px; margin-bottom: 9px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 11px; }
+  .tax-card.over { border-left-color: var(--danger); }
+  .tax-card.today { border-left-color: var(--warn); }
+  .tax-card.soon { border-left-color: var(--warn); }
+  .tax-card.ok { border-left-color: var(--ok); }
+  .tax-card .info { flex: 1; cursor: pointer; min-width: 0; }
+  .tax-card .nm { font-weight: 800; }
+  .tax-card .meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .status-pill { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill-over { background: #fbe3e0; color: var(--danger); }
+  .pill-soon { background: #fdeccb; color: var(--warn); }
+  .pill-ok { background: #e3f3ea; color: var(--ok); }
+  .cat-chip { font-size: 11px; padding: 1px 8px; border-radius: 999px; font-weight:700; }
+  .cat-가정 { background:#efeaff; color:var(--primary); }
+  .cat-사업 { background:#e2f1fb; color:var(--biz); }
+
+  .fab { position: fixed; right: 18px; bottom: 18px; z-index: 60; background: var(--primary); color: #fff;
+    border: none; width: 58px; height: 58px; border-radius: 50%; font-size: 30px; line-height: 1; box-shadow: 0 6px 18px rgba(124,92,255,.45); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(30,22,60,.45); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+  @media (min-width: 600px) { .modal-bg { align-items: center; } }
+  .modal { background: var(--card); width: 100%; max-width: 480px; border-radius: 18px 18px 0 0; padding: 18px; max-height: 92vh; overflow-y: auto; }
+  @media (min-width: 600px) { .modal { border-radius: 18px; } }
+  .modal h2 { margin: 0 0 14px; font-size: 17px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 5px; font-weight: 700; }
+  .field input, .field select, .field textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  .field textarea { resize: vertical; min-height: 52px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .modal .actions { display: flex; gap: 8px; margin-top: 8px; }
+  .modal .actions .btn { flex: 1; }
+  .seg { display:flex; gap:6px; }
+  .seg button { flex:1; border:1px solid var(--line); background:var(--bg); border-radius:9px; padding:8px; font-weight:700; font-size:13.5px; color:var(--muted); }
+  .seg button.on { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+  .mo-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .mo-opt { text-align:center; border: 1px solid var(--line); border-radius: 9px; padding: 8px 0; font-size: 13.5px; cursor: pointer; font-weight: 700; color:var(--text); }
+  .mo-opt.on { background: #efeaff; border-color: var(--primary); color: var(--primary); }
+
+  .paid-row { display:flex; align-items:center; gap:8px; font-size:13px; padding:5px 0; border-top:1px solid #f1eef8; }
+  .paid-row:first-child { border-top:none; }
+
+  .start-wrap { max-width: 420px; margin: 7vh auto; padding: 24px; text-align: center; }
+  .start-wrap .logo { font-size: 56px; }
+  .start-wrap h1 { font-size: 24px; margin: 6px 0 2px; font-weight: 800; }
+  .start-wrap .tag { color: var(--primary); font-weight: 700; margin: 0 0 6px; }
+  .start-wrap p { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+  .start-wrap input { width: 100%; padding: 13px; border: 1px solid var(--line); border-radius: 12px; text-align: center; font-size: 16px; }
+  .start-wrap .btn { width: 100%; margin-top: 10px; }
+  .toast { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); background: #2a2440; color: #fff;
+    padding: 11px 20px; border-radius: 999px; font-size: 14px; z-index: 200; opacity: 0; transition: opacity .2s; pointer-events: none; font-weight: 600; }
+  .toast.show { opacity: 1; }
+</style>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#7c5cff" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="김집사" />
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});}</script>
+</head>
+<body>
+
+<div id="startScreen" class="start-wrap">
+  <div class="logo">🧾</div>
+  <h1>세금 캘린더</h1>
+  <p class="tag">🏠 김집사 · 우리집 세금 챙기기</p>
+  <p>가족 공유코드를 입력하세요 😺</p>
+  <input id="codeInput" placeholder="예: kim-house-7392" autocomplete="off" />
+  <button class="btn primary" onclick="enterSpace()">🚪 입장하기</button>
+</div>
+
+<div id="app" style="display:none">
+  <div class="modbar">
+    <a href="index.html">🏠 홈</a>
+    <a href="butler.html">🧹 집안일</a>
+    <a href="schedule.html">📅 일정</a>
+    <a href="tax.html" class="on">🧾 세금</a>
+    <a href="fines.html">💸 벌금</a>
+  </div>
+  <header>
+    <span style="font-size:22px">🧾</span>
+    <h1>세금 캘린더</h1>
+    <span class="code-chip" id="codeChip" onclick="changeCode()" title="코드 변경"></span>
+  </header>
+  <main>
+    <div class="filters" id="filters"></div>
+    <div id="content"></div>
+  </main>
+  <button class="fab" onclick="openModal()" title="세금 추가">＋</button>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8",
+    authDomain: "kimzipsa-bfe26.firebaseapp.com",
+    databaseURL: "https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "kimzipsa-bfe26", storageBucket: "kimzipsa-bfe26.firebasestorage.app",
+    messagingSenderId: "99764860737", appId: "1:99764860737:web:e0450a5ef9e0954a6ad3c0"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+/* ===================== 저장소 ===================== */
+const Store = {
+  code: null, data: { items: [] }, ref: null, _ready: false,
+  init(code, onReady) {
+    this.code = code; this._ready = false;
+    this.ref = db.ref('tax/' + code);
+    this.ref.on('value', snap => {
+      const val = snap.val();
+      if (val && val.items) { this.data = val; }
+      else { this.data = this._seed(); this.ref.set(this.data); }
+      this.data.items ||= [];
+      this.data.items.forEach(it => { it.paidLog ||= {}; });
+      if (!this._ready) { this._ready = true; onReady && onReady(); }
+      else { render(); }
+    }, () => toast('연결 오류 😢 인터넷을 확인해주세요'));
+  },
+  _seed() {
+    const C = '가정', B = '사업';
+    return { items: [
+      { id:'x1',  name:'종합소득세 신고·납부', cat:C, months:[5],  day:31, note:'전년도 소득 신고 (5/1~5/31). 사업·기타소득 포함', paidLog:{} },
+      { id:'x2',  name:'자동차세',           cat:C, months:[6,12], day:30, note:'1기 6월·2기 12월. 연초 연납 신청 시 할인', paidLog:{} },
+      { id:'x3',  name:'재산세',             cat:C, months:[7,9],  day:30, note:'주택 7·9월 분납, 건축물 7월, 토지 9월', paidLog:{} },
+      { id:'x4',  name:'주민세(개인분)',      cat:C, months:[8],   day:31, note:'8월 정기분', paidLog:{} },
+      { id:'x5',  name:'종합부동산세',         cat:C, months:[12],  day:15, note:'해당자만 (12/1~12/15)', paidLog:{} },
+      { id:'x6',  name:'부가가치세',           cat:B, months:[1,4,7,10], day:25, note:'일반과세 분기 신고. 간이과세자는 1/25 연1회', paidLog:{} },
+      { id:'x7',  name:'원천세 신고·납부',      cat:B, months:[1,2,3,4,5,6,7,8,9,10,11,12], day:10, note:'매월 10일(전월 귀속). 반기납부 신청 시 1·7월', paidLog:{} },
+      { id:'x8',  name:'4대보험료',           cat:B, months:[1,2,3,4,5,6,7,8,9,10,11,12], day:10, note:'매월 10일 납부', paidLog:{} },
+      { id:'x9',  name:'법인세',              cat:B, months:[3],   day:31, note:'12월 결산법인 기준(사업연도 종료 후 3개월)', paidLog:{} },
+      { id:'x10', name:'사업장현황신고',        cat:B, months:[2],   day:10, note:'면세사업자 전년 실적 신고', paidLog:{} },
+    ]};
+  },
+  save() { if (this.ref) this.ref.set(this.data); },
+  uid() { return 'x' + Math.random().toString(36).slice(2, 9) + this.data.items.length; },
+};
+
+/* ===================== 유틸 ===================== */
+function $(sel, root=document) { return root.querySelector(sel); }
+function $all(sel, root=document) { return [...root.querySelectorAll(sel)]; }
+function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function todayDate(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1900); }
+const WD = ['일','월','화','수','목','금','토'];
+
+/* 다음 납부일(올해/내년 중 가장 가까운, 이미 납부 표시한 회차는 건너뜀) */
+function nextDue(item) {
+  const t = todayDate();
+  let best = null;
+  for (let yOff = 0; yOff <= 1; yOff++) {
+    const y = t.getFullYear() + yOff;
+    for (const m of (item.months||[])) {
+      const dim = new Date(y, m, 0).getDate();
+      const d = new Date(y, m-1, Math.min(item.day||1, dim)); d.setHours(0,0,0,0);
+      if (d < t) continue;
+      if (item.paidLog && item.paidLog[`${y}-${pad(m)}`]) continue;
+      if (!best || d < best) best = d;
+    }
+  }
+  return best;
+}
+function statusOf(item) {
+  const nd = nextDue(item);
+  if (!nd) return { cls:'ok', pill:'pill-ok', label:'✅ 올해 완료', sort:99999, nd:null };
+  const du = Math.round((nd - todayDate())/86400000);
+  if (du < 0)  return { cls:'over',  pill:'pill-over', label:`🔴 ${-du}일 지남`, sort:du, nd, du };
+  if (du === 0) return { cls:'today', pill:'pill-soon', label:'⏰ 오늘 마감!', sort:0, nd, du };
+  if (du <= 30) return { cls:'soon',  pill:'pill-soon', label:`🟠 D-${du}`, sort:du, nd, du };
+  return { cls:'ok', pill:'pill-ok', label:`🟢 D-${du}`, sort:du, nd, du };
+}
+function recurLabel(item) {
+  const ms = (item.months||[]).slice().sort((a,b)=>a-b);
+  if (ms.length === 12) return `매월 ${item.day}일`;
+  return `매년 ${ms.join('·')}월 ${item.day}일`;
+}
+function fmtDue(d) { return d ? `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}(${WD[d.getDay()]})` : ''; }
+
+/* ===================== 시작/코드 ===================== */
+function enterSpace() {
+  const code = ($('#codeInput').value||'').trim().toLowerCase().replace(/\s+/g,'-');
+  if (!code) { toast('코드를 입력해주세요 🐱'); return; }
+  localStorage.setItem('kimzipsa_code', code);
+  $('#startScreen').style.display='none'; $('#app').style.display='';
+  $('#codeChip').textContent = '😺 ' + code;
+  toast('연결 중... 🧾');
+  Store.init(code, render);
+}
+function changeCode() {
+  if (confirm('홈으로 가서 다른 코드로 바꿀까요?')) { localStorage.removeItem('kimzipsa_code'); location.href = 'index.html'; }
+}
+
+/* ===================== 렌더 ===================== */
+let filter = 'all';   // all | 가정 | 사업
+function render() {
+  $('#filters').innerHTML = '';
+  [['all','전체'],['가정','🏠 가정'],['사업','💼 사업']].forEach(([k,lbl]) => {
+    const b = el(`<button class="${filter===k?'active':''}">${lbl}</button>`);
+    b.addEventListener('click', () => { filter = k; render(); });
+    $('#filters').appendChild(b);
+  });
+
+  const root = $('#content'); root.innerHTML = '';
+  const items = Store.data.items.filter(it => filter==='all' || it.cat===filter);
+  const enriched = items.map(it => ({ it, s: statusOf(it) })).sort((a,b) => a.s.sort - b.s.sort);
+  const attention = enriched.filter(e => ['over','today','soon'].includes(e.s.cls));
+  const later = enriched.filter(e => e.s.cls === 'ok');
+
+  // 요약 게이지
+  const total = items.length;
+  const ok = total - attention.length;
+  const score = total ? Math.round(ok/total*100) : 100;
+  root.appendChild(el(`<div class="gauge">
+    <div class="big">${attention.length}<span style="font-size:15px;color:var(--muted)"> 건</span></div>
+    <div class="sub">30일 내 챙길 세금${attention.length?'':' 없음 😻'} · 전체 ${total}개</div>
+  </div>`));
+
+  if (total === 0) {
+    root.appendChild(el(`<div class="empty">😺 등록된 세금이 없어요.<br>오른쪽 아래 ＋ 로 추가해 주세요!</div>`));
+    return;
+  }
+  if (attention.length) {
+    root.appendChild(el(`<div class="sec-title">🔔 곧 납부할 세금 (${attention.length})</div>`));
+    attention.forEach(e => root.appendChild(taxCard(e.it, e.s)));
+  } else {
+    root.appendChild(el(`<div class="empty">😻 30일 내 납부할 세금이 없어요!</div>`));
+  }
+  if (later.length) {
+    root.appendChild(el(`<div class="sec-title">🗓️ 여유 있는 세금</div>`));
+    later.forEach(e => root.appendChild(taxCard(e.it, e.s)));
+  }
+}
+function taxCard(it, s) {
+  const card = el(`<div class="tax-card ${s.cls}"></div>`);
+  const info = el(`<div class="info">
+    <div class="nm">${esc(it.name)} <span class="cat-chip cat-${esc(it.cat)}">${esc(it.cat)}</span></div>
+    <div class="meta">🔁 ${esc(recurLabel(it))}${s.nd?` · 📅 ${fmtDue(s.nd)}`:''}${it.note?`<br>📝 ${esc(it.note)}`:''}</div>
+  </div>`);
+  info.addEventListener('click', () => openModal(it.id));
+  card.appendChild(info);
+  card.appendChild(el(`<span class="status-pill ${s.pill}">${esc(s.label)}</span>`));
+  if (s.nd) {
+    const done = el(`<button class="btn ok sm">✅ 납부</button>`);
+    done.addEventListener('click', () => markPaid(it.id, s.nd));
+    card.appendChild(done);
+  }
+  return card;
+}
+function markPaid(id, dueDate) {
+  const it = Store.data.items.find(x => x.id === id);
+  if (!it || !dueDate) return;
+  const key = `${dueDate.getFullYear()}-${pad(dueDate.getMonth()+1)}`;
+  it.paidLog ||= {}; it.paidLog[key] = true;
+  Store.save();
+  toast(`✅ ${it.name} ${dueDate.getFullYear()}.${pad(dueDate.getMonth()+1)} 납부 처리!`);
+  render();
+}
+
+/* ===================== 추가/수정 ===================== */
+let _mForm = { cat:'가정', mode:'annual', months:new Set([1]) };
+function openModal(id=null) {
+  const editing = id ? Store.data.items.find(x => x.id === id) : null;
+  const it = editing || { name:'', cat:'가정', months:[1], day:25, note:'' };
+  _mForm = { cat: it.cat || '가정', mode: (it.months && it.months.length===12) ? 'monthly' : 'annual', months: new Set(it.months||[1]) };
+  const paidKeys = editing ? Object.keys(it.paidLog||{}).filter(k=>it.paidLog[k]).sort().reverse() : [];
+  const m = el(`
+    <div class="modal-bg"><div class="modal">
+      <h2>${editing ? '✏️ 세금 수정' : '➕ 세금 추가'}</h2>
+      <div class="field"><label>🏷️ 이름 *</label><input id="f_name" value="${esc(it.name)}" placeholder="예: 부가가치세" /></div>
+      <div class="field"><label>📁 분류</label>
+        <div class="seg" id="f_cat">
+          <button type="button" data-c="가정" class="${_mForm.cat==='가정'?'on':''}">🏠 가정</button>
+          <button type="button" data-c="사업" class="${_mForm.cat==='사업'?'on':''}">💼 사업</button>
+        </div></div>
+      <div class="field"><label>🔁 반복 방식</label>
+        <div class="seg" id="f_mode">
+          <button type="button" data-m="annual" class="${_mForm.mode==='annual'?'on':''}">매년 (특정 달)</button>
+          <button type="button" data-m="monthly" class="${_mForm.mode==='monthly'?'on':''}">매월</button>
+        </div></div>
+      <div class="field" id="moBox" style="${_mForm.mode==='monthly'?'display:none':''}">
+        <label>📆 납부 달 (여러 개 선택)</label>
+        <div class="mo-picker" id="moPicker"></div>
+      </div>
+      <div class="field"><label>📅 납부일 (일)</label><input id="f_day" type="number" min="1" max="31" value="${it.day||25}" /></div>
+      <div class="field"><label>📝 메모</label><textarea id="f_note" placeholder="예: 신고 방법, 담당 세무사 연락처">${esc(it.note||'')}</textarea></div>
+      ${paidKeys.length ? `<div class="field"><label>✅ 납부 기록 (눌러서 취소)</label><div id="paidList">${paidKeys.map(k=>`<div class="paid-row"><span>${k.replace('-','년 ')}월 납부</span><button type="button" class="btn sm danger" style="margin-left:auto" data-k="${k}">취소</button></div>`).join('')}</div></div>` : ''}
+      <div class="actions">
+        ${editing ? `<button class="btn danger" onclick="deleteItem('${id}')">🗑️ 삭제</button>` : ''}
+        <button class="btn" onclick="closeModal()">취소</button>
+        <button class="btn primary" onclick="saveItem('${id||''}')">💾 저장</button>
+      </div>
+    </div></div>`);
+  showModal(m);
+  renderMoPicker();
+  $all('#f_cat button', m).forEach(b => b.addEventListener('click', () => { _mForm.cat=b.dataset.c; $all('#f_cat button',m).forEach(x=>x.classList.toggle('on',x===b)); }));
+  $all('#f_mode button', m).forEach(b => b.addEventListener('click', () => {
+    _mForm.mode=b.dataset.m; $all('#f_mode button',m).forEach(x=>x.classList.toggle('on',x===b));
+    $('#moBox').style.display = _mForm.mode==='monthly' ? 'none' : '';
+  }));
+  if (paidKeys.length) $all('#paidList button', m).forEach(b => b.addEventListener('click', () => { unmarkPaid(id, b.dataset.k); }));
+}
+function renderMoPicker() {
+  const p = $('#moPicker'); if (!p) return; p.innerHTML='';
+  for (let i=1;i<=12;i++) {
+    const o = el(`<div class="mo-opt ${_mForm.months.has(i)?'on':''}">${i}월</div>`);
+    o.addEventListener('click', () => { if(_mForm.months.has(i)) _mForm.months.delete(i); else _mForm.months.add(i); o.classList.toggle('on'); });
+    p.appendChild(o);
+  }
+}
+function saveItem(id) {
+  const name = $('#f_name').value.trim();
+  if (!name) { toast('이름을 입력해주세요 🐱'); return; }
+  const day = Math.min(31, Math.max(1, parseInt($('#f_day').value,10)||1));
+  let months;
+  if (_mForm.mode === 'monthly') months = [1,2,3,4,5,6,7,8,9,10,11,12];
+  else { months = [..._mForm.months].sort((a,b)=>a-b); if (!months.length) { toast('납부 달을 하나 이상 선택해주세요 📆'); return; } }
+  const fields = { name, cat:_mForm.cat, months, day, note: $('#f_note').value.trim() };
+  if (id) { Object.assign(Store.data.items.find(x=>x.id===id), fields); }
+  else { Store.data.items.push({ id: Store.uid(), paidLog:{}, ...fields }); }
+  Store.save(); closeModal(); toast('💾 저장했어요!'); render();
+}
+function deleteItem(id) {
+  const it = Store.data.items.find(x=>x.id===id);
+  if (!it || !confirm(`'${it.name}'을(를) 삭제할까요?`)) return;
+  Store.data.items = Store.data.items.filter(x=>x.id!==id);
+  Store.save(); closeModal(); render();
+}
+function unmarkPaid(id, key) {
+  const it = Store.data.items.find(x=>x.id===id);
+  if (!it || !it.paidLog) return;
+  delete it.paidLog[key]; Store.save(); closeModal(); openModal(id); render();
+}
+
+/* ===================== 모달 헬퍼 ===================== */
+function showModal(node) { closeModal(); node.addEventListener('click', e => { if (e.target === node) closeModal(); }); $('#modalRoot').appendChild(node); }
+function closeModal() { $('#modalRoot').innerHTML = ''; }
+
+/* ===================== 부팅 ===================== */
+(function boot() {
+  const code = localStorage.getItem('kimzipsa_code');
+  if (code) { $('#codeInput').value = code; enterSpace(); }
+})();
+</script>
+</body>
+</html>
