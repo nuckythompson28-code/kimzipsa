@@ -96,6 +96,7 @@
         <a class="card" href="recipe.html"><span class="emoji">🍳</span><span class="t">레시피</span><span class="b">우리집 요리 모음</span></a>
         <a class="card" href="anniversary.html"><span class="emoji">🎂</span><span class="t">기념일</span><span class="b">생일·기념일 D-day</span><span class="badge" id="b-anniv" style="display:none"></span></a>
         <a class="card" href="recurring.html"><span class="emoji">💳</span><span class="t">정기지출</span><span class="b">구독·고정비 관리</span><span class="badge" id="b-recur" style="display:none"></span></a>
+        <a class="card" href="todo.html"><span class="emoji">✅</span><span class="t">할 일</span><span class="b">그때그때 할 일 트래킹</span><span class="badge" id="b-todo" style="display:none"></span></a>
       </div>
       <div class="code-line">😺 우리 가족 코드: <b id="curCode"></b> · <a onclick="changeCode()">변경</a></div>
     </div>
@@ -139,7 +140,7 @@
   function addInterval(iso,n,unit){const d=parseD(iso);if(unit==='day')d.setDate(d.getDate()+n);else if(unit==='week')d.setDate(d.getDate()+n*7);else if(unit==='month'){const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,dim));}else if(unit==='year')d.setFullYear(d.getFullYear()+n);return toISO(d);}
 
   async function loadDash(code){
-    const paths=['chores','schedule','shopping','storage','vehicle','fines','anniversary','recurring'];
+    const paths=['chores','schedule','shopping','storage','vehicle','fines','anniversary','recurring','todo'];
     let data={};
     try {
       const snaps=await Promise.all(paths.map(p=>db.ref(p+'/'+code).once('value')));
@@ -180,7 +181,9 @@
     const pill=(txt,over)=>`<span class="pill ${over?'pill-over':'pill-soon'}">${txt}</span>`;
     const totalAlerts=chores.length+events.length+expSoon.length+vdues.length;
     let html=`<h2>오늘의 우리집 🏠</h2><div class="day">${t.getFullYear()}년 ${t.getMonth()+1}월 ${t.getDate()}일 (${WD[wd]})</div>`;
-    const pending=chores.length+expSoon.length+vdues.length;
+    const todoItems=(d.todo.items||[]).filter(i=>!i.done);
+    const todoDue=todoItems.filter(i=>{ if(!i.due) return false; const du=Math.round((parseD(i.due)-t)/86400000); return du<=0; });
+    const pending=chores.length+expSoon.length+vdues.length+todoDue.length;
     const score=pending===0?100:Math.max(30,100-pending*10);
     const gc=score>=90?'#1f9d57':(score>=60?'#e8920c':'#e0483b');
     const gm=score>=100?'완벽해요! 😻 우리집 컨디션 최고':(score>=80?'거의 완벽! 조금만 더 😺':(score>=50?'몇 가지 챙기면 좋아요 🐾':'할 일이 좀 쌓였어요 🙀'));
@@ -216,11 +219,14 @@
     }).filter(Boolean).sort((a,b)=>a.du-b.du);
     html+=`<div class="ds"><div class="h">💳 정기지출<a href="recurring.html">열기 ›</a></div>`+
       (recurItems.length?`<div class="ds-item"><b>월 평균 고정비</b><b style="margin-left:auto;color:var(--primary)">${Math.round(recurMonthly).toLocaleString('ko-KR')}원</b></div>`+recurSoon.slice(0,3).map(r=>`<div class="ds-item">${escape2(r.name)}${pill('D-'+r.du+' · '+r.amount.toLocaleString('ko-KR')+'원',r.du<=1)}</div>`).join(''):`<div class="none">등록된 정기지출 없음</div>`)+`</div>`;
+    // 할 일
+    const todoSorted=todoItems.slice().sort((a,b)=>(a.due||'99999').localeCompare(b.due||'99999'));
+    html+=sec('✅','할 일','todo.html',todoSorted,i=>{ const du=i.due?Math.round((parseD(i.due)-t)/86400000):null; const lbl=du!=null?(du<0?`${-du}일 지남`:(du===0?'오늘':'D-'+du)):''; return `<div class="ds-item">${escape2(i.title)}${lbl?pill(lbl,du<=0):''}</div>`; },'할 일 없음 👍');
     dash.innerHTML=html;
 
     // 카드 뱃지
     badge('b-chore',chores.length); badge('b-sch',events.length); badge('b-shop',shopTodo.length);
-    badge('b-stor',expSoon.length); badge('b-veh',vdues.length); badge('b-fine',fineLogs.length); badge('b-anniv',anniv.length); badge('b-recur',recurSoon.length);
+    badge('b-stor',expSoon.length); badge('b-veh',vdues.length); badge('b-fine',fineLogs.length); badge('b-anniv',anniv.length); badge('b-recur',recurSoon.length); badge('b-todo',todoItems.length);
   }
   function badge(id,n){ const e=$('#'+id); if(n>0){e.textContent=n;e.style.display='';}else e.style.display='none'; }
   function escape2(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
