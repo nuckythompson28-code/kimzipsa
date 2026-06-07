@@ -53,12 +53,16 @@
   .gauge-track { background:#efeaff; border-radius:999px; height:16px; overflow:hidden; }
   .gauge-fill { height:100%; border-radius:999px; transition:width .5s ease; }
   .gauge-msg { text-align:center; font-size:12.5px; font-weight:800; margin-top:7px; }
+  .gauge-right { display:flex; align-items:center; gap:9px; }
+  .gauge-toggle { font-size:12px; font-weight:800; color:var(--primary); background:#efeaff; border:1px solid #d9cdff; padding:4px 10px; border-radius:999px; white-space:nowrap; }
 
   .task-card { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--line);
     border-radius: 13px; padding: 12px 14px; margin-bottom: 9px; box-shadow: var(--shadow);
     display: flex; align-items: center; gap: 11px; }
   .task-card.over { border-left-color: var(--danger); }
+  .task-card.today { border-left-color: var(--warn); }
   .task-card.soon { border-left-color: var(--warn); }
+  .task-card.ok { border-left-color: var(--ok); }
   .task-card.todo { border-left-color: var(--pink); }
   .task-card .info { flex: 1; cursor: pointer; min-width: 0; }
   .task-card .nm { font-weight: 800; }
@@ -299,9 +303,9 @@ function statusOf(task) {
   if (nd === null) return { cls:'todo', pill:'pill-todo', label:'🐾 첫 기록', sort:-0.5, nd:null };
   const du = daysUntil(nd);
   if (du < 0)  return { cls:'over', pill:'pill-over', label:`🔴 ${-du}일 지남`, sort:du, nd };
-  if (du === 0) return { cls:'soon', pill:'pill-soon', label:'⏰ 오늘!', sort:0, nd };
+  if (du === 0) return { cls:'today', pill:'pill-soon', label:'⏰ 오늘!', sort:0, nd };
   if (du <= 7) return { cls:'soon', pill:'pill-soon', label:`🟠 ${du}일 뒤`, sort:du, nd };
-  return { cls:'', pill:'pill-ok', label:`🟢 ${du}일 뒤`, sort:du, nd };
+  return { cls:'ok', pill:'pill-ok', label:`🟢 ${du}일 뒤`, sort:du, nd };
 }
 
 /* ===================== 시작/코드 ===================== */
@@ -340,21 +344,30 @@ function render() {
 }
 
 /* ===================== 할 일 (홈) ===================== */
+let gaugeOpen = false;   // 대시보드 기본값: 항상 접힌 상태로 시작
+function toggleGauge() { gaugeOpen = !gaugeOpen; renderHome(); }
 function gaugeEl(label, score) {
   const c = score>=90?'#1f9d57':(score>=60?'#e8920c':'#e0483b');
   const msg = score>=100?'완벽해요! 😻':(score>=80?'거의 완벽! 조금만 더 😺':(score>=50?'몇 개 남았어요 🐾':'좀 밀렸어요, 힘내요! 🙀'));
   return el(`<div class="gauge">
-    <div class="gauge-top"><span>${label}</span><span style="color:${c}">${score}%</span></div>
-    <div class="gauge-track"><div class="gauge-fill" style="width:${score}%;background:${c}"></div></div>
-    <div class="gauge-msg" style="color:${c}">${msg}</div>
+    <div class="gauge-top" onclick="toggleGauge()" style="cursor:pointer;align-items:center;margin-bottom:${gaugeOpen?'6px':'0'}">
+      <span>${label}</span>
+      <span class="gauge-right">
+        <span style="color:${c};font-size:15px">${score}%</span>
+        <span class="gauge-toggle">${gaugeOpen?'접기 ▴':'열기 ▾'}</span>
+      </span>
+    </div>
+    ${gaugeOpen ? `<div class="gauge-track"><div class="gauge-fill" style="width:${score}%;background:${c}"></div></div>
+    <div class="gauge-msg" style="color:${c}">${msg}</div>` : ''}
   </div>`);
 }
 function renderHome() {
   const root = $('#tab-home'); root.innerHTML = '';
   const tasks = Store.data.tasks;
   const enriched = tasks.map(t => ({ t, s: statusOf(t) })).sort((a,b) => a.s.sort - b.s.sort);
-  const attention = enriched.filter(e => ['over','soon','todo'].includes(e.s.cls));
-  const later = enriched.filter(e => !['over','soon','todo'].includes(e.s.cls));
+  const attention = enriched.filter(e => ['over','today','todo'].includes(e.s.cls));
+  const soon = enriched.filter(e => e.s.cls === 'soon');
+  const later = enriched.filter(e => e.s.cls === 'ok');
   const score = tasks.length ? Math.round((tasks.length - attention.length) / tasks.length * 100) : 100;
   root.appendChild(gaugeEl('🧹 집안일 완성도', score));
 
@@ -367,7 +380,11 @@ function renderHome() {
     root.appendChild(el(`<div class="sec-title">🔔 집사가 챙기는 일 (${attention.length})</div>`));
     attention.forEach(e => root.appendChild(taskCard(e.t, e.s)));
   } else {
-    root.appendChild(el(`<div class="empty">😻 지금 급한 집안일은 없어요. 완벽해요!</div>`));
+    root.appendChild(el(`<div class="empty">😻 지금 챙길 집안일은 없어요. 완벽해요!</div>`));
+  }
+  if (soon.length) {
+    root.appendChild(el(`<div class="sec-title">🔜 곧 다가오는 일</div>`));
+    soon.forEach(e => root.appendChild(taskCard(e.t, e.s)));
   }
   if (later.length) {
     root.appendChild(el(`<div class="sec-title">🛋️ 여유 있는 일</div>`));
