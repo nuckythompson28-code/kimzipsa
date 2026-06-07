@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🐱📘 EngCat — 나의 영어 노트</title>
+<style>
+  :root { --bg:#f5f4fb; --card:#fff; --line:#e7e4f0; --text:#2a2440; --muted:#8a85a3; --primary:#7c5cff; --primary-dark:#6344e0; --danger:#e0483b; --warn:#e8920c; --ok:#1f9d57; --pink:#ff7eb6; --shadow:0 1px 3px rgba(40,30,80,.08),0 4px 16px rgba(40,30,80,.06); }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","맑은 고딕",sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.5; }
+  button { font-family:inherit; cursor:pointer; } input,select,textarea { font-family:inherit; font-size:15px; }
+  .modbar { display:flex; gap:5px; padding:7px 10px; background:#2a2440; overflow-x:auto; }
+  .modbar a { flex:0 0 auto; text-decoration:none; color:#cbc5e8; font-weight:700; font-size:13px; padding:6px 12px; border-radius:999px; white-space:nowrap; }
+  .modbar a.on { background:#7c5cff; color:#fff; }
+  header { position:sticky; top:0; z-index:50; background:var(--card); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:9px; padding:11px 16px; }
+  header h1 { font-size:17px; margin:0; font-weight:800; }
+  header .code-chip { margin-left:auto; font-size:12px; color:var(--muted); background:var(--bg); border:1px solid var(--line); padding:4px 9px; border-radius:999px; cursor:pointer; }
+  nav.tabs { position:sticky; top:54px; z-index:40; display:flex; background:var(--card); border-bottom:1px solid var(--line); }
+  nav.tabs button { flex:1; border:none; background:none; padding:11px 2px; font-size:13.5px; color:var(--muted); border-bottom:2.5px solid transparent; font-weight:700; }
+  nav.tabs button.active { color:var(--primary); border-bottom-color:var(--primary); }
+  main { padding:14px; max-width:760px; margin:0 auto; padding-bottom:40px; }
+  .muted { color:var(--muted); } .spacer{flex:1;}
+  .btn { border:1px solid var(--line); background:var(--card); color:var(--text); padding:9px 14px; border-radius:10px; font-size:14px; font-weight:700; }
+  .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.ok { background:var(--ok); border-color:var(--ok); color:#fff; }
+  .btn.danger { color:var(--danger); border-color:#f1c4bf; }
+  .btn.sm { padding:6px 11px; font-size:13px; }
+  .empty { text-align:center; color:var(--muted); padding:34px 10px; font-size:14px; }
+  .chip-cat { font-size:11px; background:var(--bg); border:1px solid var(--line); padding:1px 8px; border-radius:999px; color:var(--muted); }
+  .addwrap { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px; box-shadow:var(--shadow); }
+  .addwrap input, .addwrap select { width:100%; padding:9px; border:1px solid var(--line); border-radius:9px; margin-bottom:7px; }
+  .filters { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .filters button { border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 11px; font-size:12.5px; font-weight:700; color:var(--muted); }
+  .filters button.on { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .nc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:11px 13px; margin-bottom:7px; box-shadow:var(--shadow); display:flex; align-items:center; gap:10px; }
+  .nc .body { flex:1; min-width:0; cursor:pointer; }
+  .nc .en { font-weight:800; }
+  .nc .ko { font-size:13px; color:var(--muted); margin-top:1px; }
+  .spk { border:1px solid var(--line); background:var(--bg); border-radius:9px; width:34px; height:34px; font-size:16px; flex:0 0 auto; }
+  .fav { background:none; border:none; font-size:19px; flex:0 0 auto; }
+  /* 복습 카드 */
+  .rev-top { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .rev-top .left { font-size:13px; font-weight:800; color:var(--muted); }
+  .flash { background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); padding:34px 20px; text-align:center; min-height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; cursor:pointer; }
+  .flash .q { font-size:22px; font-weight:800; }
+  .flash .qsub { font-size:13px; color:var(--muted); }
+  .flash .a { font-size:19px; color:var(--primary); font-weight:700; border-top:1px dashed var(--line); padding-top:16px; width:100%; }
+  .flash .hint { font-size:12.5px; color:var(--muted); }
+  .rev-actions { display:flex; gap:10px; margin-top:14px; }
+  .rev-actions .btn { flex:1; padding:14px; font-size:15px; }
+  .toggle { border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 11px; font-size:12.5px; font-weight:700; color:var(--primary); }
+  .modal-bg { position:fixed; inset:0; background:rgba(30,22,60,.45); z-index:100; display:flex; align-items:flex-end; justify-content:center; }
+  @media (min-width:600px){ .modal-bg{ align-items:center; } }
+  .modal { background:var(--card); width:100%; max-width:480px; border-radius:18px 18px 0 0; padding:18px; }
+  @media (min-width:600px){ .modal{ border-radius:18px; } }
+  .modal h2 { margin:0 0 14px; font-size:17px; }
+  .field { margin-bottom:12px; } .field label { display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; font-weight:700; }
+  .field input, .field select, .field textarea { width:100%; padding:10px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .modal .actions { display:flex; gap:8px; margin-top:8px; } .modal .actions .btn { flex:1; }
+  .fab { position:fixed; right:18px; bottom:18px; z-index:60; background:var(--primary); color:#fff; border:none; width:58px; height:58px; border-radius:50%; font-size:30px; line-height:1; box-shadow:0 6px 18px rgba(124,92,255,.45); }
+  .start-wrap { max-width:420px; margin:7vh auto; padding:24px; text-align:center; }
+  .start-wrap .logo { font-size:56px; } .start-wrap h1 { font-size:24px; margin:6px 0 2px; font-weight:800; }
+  .start-wrap p { color:var(--muted); margin:0 0 22px; font-size:14px; }
+  .start-wrap input { width:100%; padding:13px; border:1px solid var(--line); border-radius:12px; text-align:center; font-size:16px; }
+  .start-wrap .btn { width:100%; margin-top:10px; }
+  .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#2a2440; color:#fff; padding:11px 20px; border-radius:999px; font-size:14px; z-index:200; opacity:0; transition:opacity .2s; pointer-events:none; font-weight:600; }
+  .toast.show { opacity:1; }
+</style>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#7c5cff" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="EngCat" />
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});}</script>
+</head>
+<body>
+<div id="startScreen" class="start-wrap">
+  <div class="logo">🐱📘</div><h1>EngCat</h1>
+  <p>가족 공유코드를 입력하세요 😺<br>나의 영어 문장·단어 노트</p>
+  <input id="codeInput" placeholder="예: kim-house-7392" autocomplete="off" />
+  <button class="btn primary" onclick="enterSpace()">🚪 입장하기</button>
+</div>
+<div id="app" style="display:none">
+  <div class="modbar">
+    <a href="index.html">🏠 홈</a>
+    <a href="butler.html">🧹 집안일</a>
+    <a href="schedule.html">📅 일정</a>
+    <a href="shopping.html">🛒 장보기</a>
+    <a href="fines.html">💸 벌금</a>
+  </div>
+  <header><span style="font-size:22px">🐱</span><h1>EngCat 📘</h1>
+    <span class="code-chip" id="codeChip" onclick="changeCode()" title="코드 변경"></span></header>
+  <nav class="tabs">
+    <button data-tab="review" class="active" onclick="switchTab('review')">🎴 복습</button>
+    <button data-tab="notes" onclick="switchTab('notes')">📚 노트</button>
+    <button data-tab="settings" onclick="switchTab('settings')">⚙️ 설정</button>
+  </nav>
+  <main>
+    <div id="tab-review"></div>
+    <div id="tab-notes" style="display:none"></div>
+    <div id="tab-settings" style="display:none"></div>
+  </main>
+  <button class="fab" id="fab" onclick="openCardModal()" title="카드 추가" style="display:none">＋</button>
+</div>
+<div id="modalRoot"></div><div id="toast" class="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = { apiKey:"AIzaSyCJm4hq9g8cE9365NM5Yy670rXBUtytWW8", authDomain:"kimzipsa-bfe26.firebaseapp.com",
+    databaseURL:"https://kimzipsa-bfe26-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"kimzipsa-bfe26",
+    storageBucket:"kimzipsa-bfe26.firebasestorage.app", messagingSenderId:"99764860737", appId:"1:99764860737:web:e0450a5ef9e0954a6ad3c0" };
+  firebase.initializeApp(firebaseConfig); const db = firebase.database();
+</script>
+<script>
+const TYPES = { '문장':'💬', '단어':'🔤', '교정':'✏️' };
+const INTERVALS = [0,1,3,7,16,35,90]; // 레벨별 다음 복습까지 일수
+
+const Store = {
+  code:null, ref:null, _ready:false, data:{ cards:[] },
+  init(code,onReady){ this.code=code; this._ready=false; this.ref=db.ref('english/'+code);
+    this.ref.on('value', snap=>{ const v=snap.val();
+      if(v && v.cards) this.data=v; else { this.data=this._seed(); this.ref.set(this.data); }
+      this.data.cards||=[];
+      if(!this._ready){ this._ready=true; onReady&&onReady(); } else render();
+    }, ()=>toast('연결 오류 😢 인터넷을 확인해주세요')); },
+  _seed(){ const t=todayISO(); const mk=(en,ko,type)=>({id:'c'+Math.random().toString(36).slice(2,9),en,ko,type,memo:'',fav:false,createdAt:Date.now(),srs:{level:0,due:t,reps:0}});
+    return { cards:[
+      mk('I want the items I bought to be deducted automatically.','내가 산 것들을 자동으로 차감하고 싶어요.','교정'),
+      mk('This app is shared with family in real time.','이 앱은 가족끼리 실시간으로 공유돼요.','교정'),
+      mk('I want to see at a glance when the warranty expires.','보증이 언제 만료되는지 한눈에 보고 싶어요.','교정'),
+      mk("There's no button to delete records I made by mistake.",'실수로 만든 기록을 삭제할 버튼이 없어요.','교정'),
+      mk('Can you give me some exercises to practice?','연습할 문제 좀 줄 수 있어요?','교정'),
+      mk('deduct','차감하다, 공제하다','단어'),
+      mk('warranty','(제품) 보증, 보증서','단어'),
+      mk('at a glance','한눈에','단어'),
+      mk('expire','만료되다 (자동사)','단어'),
+      mk('stuff','물건, 것 (불가산명사)','단어'),
+    ] }; },
+  save(){ if(this.ref) this.ref.set(this.data); },
+  uid(){ return 'c'+Math.random().toString(36).slice(2,10); },
+};
+
+function $(s,r=document){return r.querySelector(s);} function $all(s,r=document){return [...r.querySelectorAll(s)];}
+function el(h){const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstElementChild;}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function pad(n){return String(n).padStart(2,'0');}
+function todayDate(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function toISO(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function todayISO(){return toISO(todayDate());}
+function addDaysISO(n){const d=todayDate();d.setDate(d.getDate()+n);return toISO(d);}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),1600);}
+function cardById(id){return Store.data.cards.find(c=>c.id===id);}
+function dueCards(){const t=todayISO(); return Store.data.cards.filter(c=>!c.srs||!c.srs.due||c.srs.due<=t);}
+
+/* ===== TTS (브라우저 음성) ===== */
+let _voices=[];
+function loadVoices(){ if(window.speechSynthesis){ _voices=speechSynthesis.getVoices(); } }
+if(window.speechSynthesis){ loadVoices(); speechSynthesis.onvoiceschanged=loadVoices; }
+function speak(text){ if(!window.speechSynthesis){ toast('이 브라우저는 음성을 지원 안 해요'); return; }
+  const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.92;
+  const v=_voices.find(v=>/en[-_]US/i.test(v.lang))||_voices.find(v=>/^en/i.test(v.lang));
+  if(v) u.voice=v;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+function enterSpace(){ const code=$('#codeInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if(!code){toast('코드를 입력해주세요 🐱');return;}
+  localStorage.setItem('kimzipsa_code',code);
+  $('#startScreen').style.display='none'; $('#app').style.display='';
+  $('#codeChip').textContent='😺 '+code; toast('연결 중... 🐱');
+  Store.init(code, ()=>switchTab('review')); }
+function changeCode(){ if(confirm('홈으로 가서 다른 코드로 바꿀까요?')){ localStorage.removeItem('kimzipsa_code'); location.href='index.html'; } }
+
+let currentTab='review';
+function switchTab(t){ currentTab=t; $all('nav.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+  ['review','notes','settings'].forEach(x=>$('#tab-'+x).style.display=(x===t)?'':'none');
+  $('#fab').style.display=(t==='notes')?'':'none';
+  if(t==='review' && revCard===null) buildQueue();
+  render(); }
+function render(){ if(currentTab==='review') renderReview(); else if(currentTab==='notes') renderNotes(); else renderSettings(); }
+
+/* ===================== 복습 (SRS) ===================== */
+let revQueue=[], revCard=null, revFlipped=false, revDir='ko2en';
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function buildQueue(){ revQueue=shuffle(dueCards().map(c=>c.id)); revCard=revQueue.shift()||null; revFlipped=false; }
+function renderReview(){
+  const root=$('#tab-review'); root.innerHTML='';
+  const top=el(`<div class="rev-top"><span class="left">🎴 남은 ${revQueue.length+(revCard?1:0)}장 · 📚 전체 ${Store.data.cards.length}</span><span class="spacer"></span>
+    <button class="toggle" id="dirBtn">${revDir==='ko2en'?'🇰🇷→🇬🇧':'🇬🇧→🇰🇷'}</button></div>`);
+  $('#dirBtn',top).addEventListener('click',()=>{ revDir=revDir==='ko2en'?'en2ko':'ko2en'; revFlipped=false; renderReview(); });
+  root.appendChild(top);
+
+  if(!Store.data.cards.length){ root.appendChild(el(`<div class="empty">📚 카드가 없어요.<br>노트 탭에서 추가하세요!</div>`)); return; }
+  if(revCard===null){
+    const done=el(`<div class="flash" style="cursor:default"><div style="font-size:46px">😻</div><div class="q" style="font-size:18px">오늘 복습 끝!</div>
+      <div class="qsub">잘했어요. 내일 또 만나요 🐾</div></div>`);
+    root.appendChild(done);
+    const again=el(`<button class="btn" style="width:100%;margin-top:14px">🔁 전체 카드 다시 보기</button>`);
+    again.addEventListener('click',()=>{ revQueue=shuffle(Store.data.cards.map(c=>c.id)); revCard=revQueue.shift()||null; revFlipped=false; renderReview(); });
+    root.appendChild(again);
+    return;
+  }
+  const c=cardById(revCard); if(!c){ revCard=revQueue.shift()||null; renderReview(); return; }
+  const front = revDir==='ko2en' ? c.ko : c.en;
+  const back  = revDir==='ko2en' ? c.en : c.ko;
+  const flash=el(`<div class="flash">
+    <div class="qsub">${TYPES[c.type]||''} ${c.type}</div>
+    <div class="q">${esc(front)}</div>
+    ${revFlipped?`<div class="a">${esc(back)}</div>${c.memo?`<div class="hint">📝 ${esc(c.memo)}</div>`:''}`:`<div class="hint">👆 탭해서 정답 보기</div>`}
+  </div>`);
+  flash.addEventListener('click',()=>{ if(!revFlipped){ revFlipped=true; renderReview(); setTimeout(()=>speak(c.en),150); } else { speak(c.en); } });
+  root.appendChild(flash);
+
+  if(revFlipped){
+    const acts=el(`<div class="rev-actions"></div>`);
+    const no=el(`<button class="btn danger">🙁 몰라요</button>`); no.addEventListener('click',()=>answer(false));
+    const spk=el(`<button class="btn" style="flex:0 0 auto">🔊</button>`); spk.addEventListener('click',()=>speak(c.en));
+    const yes=el(`<button class="btn ok">😺 알아요</button>`); yes.addEventListener('click',()=>answer(true));
+    acts.append(no,spk,yes); root.appendChild(acts);
+  } else {
+    const flip=el(`<button class="btn primary" style="width:100%;margin-top:14px">정답 보기 👀</button>`);
+    flip.addEventListener('click',()=>{ revFlipped=true; renderReview(); setTimeout(()=>speak(c.en),150); });
+    root.appendChild(flip);
+  }
+}
+function answer(know){
+  const c=cardById(revCard); if(c){ const lv = know? Math.min((c.srs?.level||0)+1, INTERVALS.length-1) : 0;
+    c.srs={ level:lv, due:addDaysISO(INTERVALS[lv]), reps:(c.srs?.reps||0)+1 }; Store.save(); }
+  if(!know && revCard) revQueue.push(revCard); // 몰라요는 이번 세션에서 다시
+  revCard=revQueue.shift()||null; revFlipped=false; renderReview();
+}
+
+/* ===================== 노트 ===================== */
+let noteFilter='', noteQuery='';
+function renderNotes(){
+  const root=$('#tab-notes'); root.innerHTML='';
+  const add=el(`<div class="addwrap">
+    <input id="a_en" placeholder="영어 문장/단어 (예: at a glance)" />
+    <input id="a_ko" placeholder="뜻 (예: 한눈에)" />
+    <div style="display:flex;gap:7px">
+      <select id="a_type" style="flex:1"><option value="문장">💬 문장</option><option value="단어">🔤 단어</option><option value="교정">✏️ 교정</option></select>
+      <button class="btn primary" style="flex:0 0 auto" onclick="quickAdd()">＋ 추가</button>
+    </div></div>`);
+  root.appendChild(add);
+  root.appendChild(el(`<input id="srch" placeholder="🔎 검색" value="${esc(noteQuery)}" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px" />`));
+  $('#srch').addEventListener('input',e=>{ noteQuery=e.target.value; renderNoteList(); });
+  const f=el(`<div class="filters">
+    <button data-f="" class="${!noteFilter?'on':''}">전체</button>
+    <button data-f="문장" class="${noteFilter==='문장'?'on':''}">💬 문장</button>
+    <button data-f="단어" class="${noteFilter==='단어'?'on':''}">🔤 단어</button>
+    <button data-f="교정" class="${noteFilter==='교정'?'on':''}">✏️ 교정</button>
+    <button data-f="fav" class="${noteFilter==='fav'?'on':''}">⭐ 즐겨찾기</button></div>`);
+  $all('button',f).forEach(b=>b.addEventListener('click',()=>{ noteFilter=b.dataset.f; renderNotes(); }));
+  root.appendChild(f);
+  root.appendChild(el(`<div id="notelist"></div>`));
+  renderNoteList();
+}
+function renderNoteList(){
+  const root=$('#notelist'); root.innerHTML='';
+  const q=noteQuery.trim().toLowerCase();
+  let list=Store.data.cards.filter(c=> (noteFilter===''||(noteFilter==='fav'?c.fav:c.type===noteFilter)) &&
+    (!q||c.en.toLowerCase().includes(q)||(c.ko||'').toLowerCase().includes(q)));
+  list=list.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(!list.length){ root.appendChild(el(`<div class="empty">카드가 없어요</div>`)); return; }
+  list.forEach(c=>{
+    const row=el(`<div class="nc"></div>`);
+    const fav=el(`<button class="fav">${c.fav?'⭐':'☆'}</button>`); fav.addEventListener('click',()=>{ c.fav=!c.fav; Store.save(); renderNoteList(); });
+    const body=el(`<div class="body"><div class="en">${TYPES[c.type]||''} ${esc(c.en)}</div><div class="ko">${esc(c.ko)}</div></div>`);
+    body.addEventListener('click',()=>openCardModal(c.id));
+    const spk=el(`<button class="spk">🔊</button>`); spk.addEventListener('click',()=>speak(c.en));
+    row.append(fav,body,spk); root.appendChild(row);
+  });
+}
+function quickAdd(){
+  const en=$('#a_en').value.trim(), ko=$('#a_ko').value.trim();
+  if(!en){ toast('영어를 입력해주세요'); return; }
+  Store.data.cards.push({ id:Store.uid(), en, ko, type:$('#a_type').value, memo:'', fav:false, createdAt:Date.now(), srs:{level:0,due:todayISO(),reps:0} });
+  Store.save(); $('#a_en').value=''; $('#a_ko').value=''; $('#a_en').focus(); toast('➕ 추가! 오늘 복습에 들어가요'); renderNoteList();
+}
+function openCardModal(id){
+  const c=cardById(id); if(!c) return;
+  const m=el(`<div class="modal-bg"><div class="modal">
+    <h2>✏️ 카드 수정</h2>
+    <div class="field"><label>영어</label><input id="m_en" value="${esc(c.en)}" /></div>
+    <div class="field"><label>뜻</label><input id="m_ko" value="${esc(c.ko)}" /></div>
+    <div class="field"><label>분류</label><select id="m_type">${Object.keys(TYPES).map(k=>`<option value="${k}" ${k===c.type?'selected':''}>${TYPES[k]} ${k}</option>`).join('')}</select></div>
+    <div class="field"><label>메모 (선택)</label><textarea id="m_memo" style="min-height:50px">${esc(c.memo||'')}</textarea></div>
+    <div class="muted" style="font-size:12px;margin-bottom:8px">📈 복습 ${c.srs?.reps||0}회 · 레벨 ${c.srs?.level||0} · 다음 ${esc(c.srs?.due||'-')}</div>
+    <div class="actions"><button class="btn danger" onclick="delCard('${id}')">🗑️</button>
+      <button class="btn" style="flex:0 0 auto" onclick="speak(cardById('${id}').en)">🔊</button>
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="saveCard('${id}')">💾</button></div>
+  </div></div>`);
+  showModal(m);
+}
+function saveCard(id){ const c=cardById(id); if(!c) return; const en=$('#m_en').value.trim(); if(!en){toast('영어를 입력해주세요');return;}
+  c.en=en; c.ko=$('#m_ko').value.trim(); c.type=$('#m_type').value; c.memo=$('#m_memo').value.trim();
+  Store.save(); closeModal(); toast('💾 저장!'); render(); }
+function delCard(id){ if(confirm('이 카드를 삭제할까요?')){ Store.data.cards=Store.data.cards.filter(c=>c.id!==id); if(revCard===id){revCard=revQueue.shift()||null;} Store.save(); closeModal(); render(); } }
+
+/* ===================== 설정 ===================== */
+function renderSettings(){
+  const root=$('#tab-settings'); root.innerHTML='';
+  const due=dueCards().length;
+  root.appendChild(el(`<div class="nc" style="display:block"><div class="en">📊 현황</div>
+    <div class="ko">전체 ${Store.data.cards.length}장 · 오늘 복습 ${due}장 · 문장 ${Store.data.cards.filter(c=>c.type!=='단어').length} / 단어 ${Store.data.cards.filter(c=>c.type==='단어').length}</div></div>`));
+  root.appendChild(el(`<div style="font-size:13px;font-weight:800;color:var(--muted);margin:16px 0 8px">💾 백업</div>`));
+  const exp=el(`<button class="btn" style="margin-right:8px">⬇️ 내보내기</button>`); exp.addEventListener('click',exportBackup);
+  const imp=el(`<label class="btn" style="display:inline-block">⬆️ 불러오기<input type="file" accept="application/json" style="display:none"></label>`);
+  imp.querySelector('input').addEventListener('change',importBackup);
+  root.append(exp,imp);
+  root.appendChild(el(`<div class="muted" style="margin-top:16px;font-size:12.5px">🔊 음성이 안 나오면 폰 무음 해제 + 한 번 화면을 탭한 뒤 다시 시도해보세요. 코드: ${esc(Store.code)}</div>`));
+}
+function exportBackup(){ const blob=new Blob([JSON.stringify(Store.data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); const d=new Date(); a.href=url; a.download=`EngCat_${Store.code}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`; a.click(); URL.revokeObjectURL(url); toast('💾 백업 저장!'); }
+function importBackup(ev){ const f=ev.target.files[0]; if(!f)return; if(!confirm('현재 카드를 덮어쓸까요?')){ev.target.value='';return;}
+  const r=new FileReader(); r.onload=e=>{ try{ const d=JSON.parse(e.target.result); Store.data={cards:d.cards||[]}; Store.save(); buildQueue(); render(); toast('✅ 불러오기 완료'); }catch(err){ toast('파일을 읽지 못했어요 😢'); } }; r.readAsText(f); }
+
+function showModal(node){ closeModal(); node.addEventListener('click',e=>{ if(e.target===node) closeModal(); }); $('#modalRoot').appendChild(node); }
+function closeModal(){ $('#modalRoot').innerHTML=''; }
+(function boot(){ const code=localStorage.getItem('kimzipsa_code'); if(code){ $('#codeInput').value=code; enterSpace(); } })();
+</script>
+</body>
+</html>

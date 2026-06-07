@@ -97,6 +97,7 @@
         <a class="card" href="anniversary.html"><span class="emoji">🎂</span><span class="t">기념일</span><span class="b">생일·기념일 D-day</span><span class="badge" id="b-anniv" style="display:none"></span></a>
         <a class="card" href="recurring.html"><span class="emoji">💳</span><span class="t">정기지출</span><span class="b">구독·고정비 관리</span><span class="badge" id="b-recur" style="display:none"></span></a>
         <a class="card" href="todo.html"><span class="emoji">✅</span><span class="t">할 일</span><span class="b">그때그때 할 일 트래킹</span><span class="badge" id="b-todo" style="display:none"></span></a>
+        <a class="card" href="engcat.html"><span class="emoji">🐱📘</span><span class="t">EngCat</span><span class="b">영어 문장·단어 복습</span><span class="badge" id="b-eng" style="display:none"></span></a>
       </div>
       <div class="code-line">😺 우리 가족 코드: <b id="curCode"></b> · <a onclick="changeCode()">변경</a></div>
     </div>
@@ -140,7 +141,7 @@
   function addInterval(iso,n,unit){const d=parseD(iso);if(unit==='day')d.setDate(d.getDate()+n);else if(unit==='week')d.setDate(d.getDate()+n*7);else if(unit==='month'){const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,dim));}else if(unit==='year')d.setFullYear(d.getFullYear()+n);return toISO(d);}
 
   async function loadDash(code){
-    const paths=['chores','schedule','shopping','storage','vehicle','fines','anniversary','recurring','todo'];
+    const paths=['chores','schedule','shopping','storage','vehicle','fines','anniversary','recurring','todo','english'];
     let data={};
     try {
       const snaps=await Promise.all(paths.map(p=>db.ref(p+'/'+code).once('value')));
@@ -222,11 +223,16 @@
     // 할 일
     const todoSorted=todoItems.slice().sort((a,b)=>(a.due||'99999').localeCompare(b.due||'99999'));
     html+=sec('✅','할 일','todo.html',todoSorted,i=>{ const du=i.due?Math.round((parseD(i.due)-t)/86400000):null; const lbl=du!=null?(du<0?`${-du}일 지남`:(du===0?'오늘':'D-'+du)):''; return `<div class="ds-item">${escape2(i.title)}${lbl?pill(lbl,du<=0):''}</div>`; },'할 일 없음 👍');
+    // EngCat 영어 복습
+    const engCards=(d.english.cards||[]);
+    const engDue=engCards.filter(c=>!c.srs||!c.srs.due||c.srs.due<=todayStr);
+    html+=`<div class="ds"><div class="h">🐱📘 영어 복습<a href="engcat.html">열기 ›</a></div>`+
+      (engCards.length?`<div class="ds-item">오늘 복습할 카드<b style="margin-left:auto;color:var(--primary)">${engDue.length}장</b></div>`:`<div class="none">카드 없음 — EngCat에서 추가</div>`)+`</div>`;
     dash.innerHTML=html;
 
     // 카드 뱃지
     badge('b-chore',chores.length); badge('b-sch',events.length); badge('b-shop',shopTodo.length);
-    badge('b-stor',expSoon.length); badge('b-veh',vdues.length); badge('b-fine',fineLogs.length); badge('b-anniv',anniv.length); badge('b-recur',recurSoon.length); badge('b-todo',todoItems.length);
+    badge('b-stor',expSoon.length); badge('b-veh',vdues.length); badge('b-fine',fineLogs.length); badge('b-anniv',anniv.length); badge('b-recur',recurSoon.length); badge('b-todo',todoItems.length); badge('b-eng',engDue.length);
   }
   function badge(id,n){ const e=$('#'+id); if(n>0){e.textContent=n;e.style.display='';}else e.style.display='none'; }
   function escape2(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
