@@ -41,6 +41,7 @@
   .gauge-track { background:#eee6fb; border-radius:999px; height:15px; overflow:hidden; }
   .gauge-fill { height:100%; border-radius:999px; transition:width .5s ease; }
   .gauge-msg { text-align:center; font-size:12.5px; font-weight:800; margin-top:6px; }
+  .dash-toggle { font-size:12px; font-weight:800; color:var(--primary); background:#efeaff; border:1px solid #d9cdff; padding:5px 11px; border-radius:999px; white-space:nowrap; cursor:pointer; flex:0 0 auto; }
 
   .cards { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
   a.card { text-decoration:none; color:inherit; background:#fff; border:1px solid #e7e4f0; border-radius:16px; padding:16px;
@@ -119,6 +120,12 @@
   const db = firebase.database();
 
   const $ = s => document.querySelector(s);
+  let dashOpen = false;   // 대시보드 기본값: 접힌 상태로 시작
+  function toggleDash(){
+    dashOpen = !dashOpen;
+    const b=$('#dashBody'); if(b) b.style.display = dashOpen?'':'none';
+    const t=$('#dashToggle'); if(t) t.textContent = dashOpen?'접기 ▴':'열기 ▾';
+  }
   function get(){ return localStorage.getItem('kimzipsa_code'); }
   function suggest(){ const a=['fox','bear','owl','deer','seal','duck','cat','dog']; $('#codeInput').value=`house-${a[Math.floor(Math.random()*a.length)]}-${Math.floor(1000+Math.random()*9000)}`; }
   function enter(){ const c=$('#codeInput').value.trim().toLowerCase().replace(/\s+/g,'-'); if(!c){alert('코드를 입력해주세요 🐱');return;} localStorage.setItem('kimzipsa_code',c); show(); }
@@ -181,7 +188,10 @@
     };
     const pill=(txt,over)=>`<span class="pill ${over?'pill-over':'pill-soon'}">${txt}</span>`;
     const totalAlerts=chores.length+events.length+expSoon.length+vdues.length;
-    let html=`<h2>오늘의 우리집 🏠</h2><div class="day">${t.getFullYear()}년 ${t.getMonth()+1}월 ${t.getDate()}일 (${WD[wd]})</div>`;
+    let html=`<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px">
+      <div style="flex:1;min-width:0"><h2 style="margin:0 0 2px">오늘의 우리집 🏠</h2><div class="day" style="margin-bottom:0">${t.getFullYear()}년 ${t.getMonth()+1}월 ${t.getDate()}일 (${WD[wd]})${totalAlerts?` · 챙길 일 ${totalAlerts}건`:''}</div></div>
+      <button id="dashToggle" class="dash-toggle" onclick="toggleDash()">${dashOpen?'접기 ▴':'열기 ▾'}</button>
+    </div>`;
     const todoItems=(d.todo.items||[]).filter(i=>!i.done);
     const todoDue=todoItems.filter(i=>{ if(!i.due) return false; const du=Math.round((parseD(i.due)-t)/86400000); return du<=0; });
     const pending=chores.length+expSoon.length+vdues.length+todoDue.length;
@@ -189,6 +199,7 @@
     const gc=score>=90?'#1f9d57':(score>=60?'#e8920c':'#e0483b');
     const gm=score>=100?'완벽해요! 😻 우리집 컨디션 최고':(score>=80?'거의 완벽! 조금만 더 😺':(score>=50?'몇 가지 챙기면 좋아요 🐾':'할 일이 좀 쌓였어요 🙀'));
     html+=`<div class="gauge"><div class="gauge-top"><span>🏠 우리집 컨디션</span><span style="color:${gc}">${score}%</span></div><div class="gauge-track"><div class="gauge-fill" style="width:${score}%;background:${gc}"></div></div><div class="gauge-msg" style="color:${gc}">${gm}</div></div>`;
+    html+=`<div id="dashBody" style="display:${dashOpen?'':'none'}">`;
     html+=sec('📅','오늘 일정','schedule.html',events,e=>`<div class="ds-item">${e.time?`<b>${e.time}</b>`:'<span class="dot" style="background:#7c5cff"></span>'} ${escape2(e.title)}</div>`,'오늘 일정 없음');
     html+=sec('🧹','챙길 집안일','butler.html',chores,c=>`<div class="ds-item">${escape2(c.name)}${pill(c.label,c.over)}</div>`,'오늘 할 집안일 없음 👍');
     html+=sec('🛒','장보기','shopping.html',shopTodo,i=>`<div class="ds-item">${escape2(i.name)}</div>`,'살 것 없음');
@@ -228,6 +239,7 @@
     const engDue=engCards.filter(c=>!c.srs||!c.srs.due||c.srs.due<=todayStr);
     html+=`<div class="ds"><div class="h">🐱📘 영어 복습<a href="engcat.html">열기 ›</a></div>`+
       (engCards.length?`<div class="ds-item">오늘 복습할 카드<b style="margin-left:auto;color:var(--primary)">${engDue.length}장</b></div>`:`<div class="none">카드 없음 — EngCat에서 추가</div>`)+`</div>`;
+    html+=`</div>`;
     dash.innerHTML=html;
 
     // 카드 뱃지
