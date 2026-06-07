@@ -48,6 +48,12 @@
 
   .sec-title { font-size: 13px; font-weight: 800; color: var(--muted); margin: 18px 0 9px; }
 
+  .gauge { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 15px; margin-bottom:14px; box-shadow:var(--shadow); }
+  .gauge-top { display:flex; justify-content:space-between; font-size:13.5px; font-weight:800; color:var(--muted); margin-bottom:6px; }
+  .gauge-track { background:#efeaff; border-radius:999px; height:16px; overflow:hidden; }
+  .gauge-fill { height:100%; border-radius:999px; transition:width .5s ease; }
+  .gauge-msg { text-align:center; font-size:12.5px; font-weight:800; margin-top:7px; }
+
   .task-card { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--line);
     border-radius: 13px; padding: 12px 14px; margin-bottom: 9px; box-shadow: var(--shadow);
     display: flex; align-items: center; gap: 11px; }
@@ -334,15 +340,28 @@ function render() {
 }
 
 /* ===================== 할 일 (홈) ===================== */
+function gaugeEl(label, score) {
+  const c = score>=90?'#1f9d57':(score>=60?'#e8920c':'#e0483b');
+  const msg = score>=100?'완벽해요! 😻':(score>=80?'거의 완벽! 조금만 더 😺':(score>=50?'몇 개 남았어요 🐾':'좀 밀렸어요, 힘내요! 🙀'));
+  return el(`<div class="gauge">
+    <div class="gauge-top"><span>${label}</span><span style="color:${c}">${score}%</span></div>
+    <div class="gauge-track"><div class="gauge-fill" style="width:${score}%;background:${c}"></div></div>
+    <div class="gauge-msg" style="color:${c}">${msg}</div>
+  </div>`);
+}
 function renderHome() {
   const root = $('#tab-home'); root.innerHTML = '';
-  if (Store.data.tasks.length === 0) {
+  const tasks = Store.data.tasks;
+  const enriched = tasks.map(t => ({ t, s: statusOf(t) })).sort((a,b) => a.s.sort - b.s.sort);
+  const attention = enriched.filter(e => ['over','soon','todo'].includes(e.s.cls));
+  const later = enriched.filter(e => !['over','soon','todo'].includes(e.s.cls));
+  const score = tasks.length ? Math.round((tasks.length - attention.length) / tasks.length * 100) : 100;
+  root.appendChild(gaugeEl('🧹 집안일 완성도', score));
+
+  if (tasks.length === 0) {
     root.appendChild(el(`<div class="empty">😺 아직 등록된 집안일이 없어요.<br>오른쪽 아래 ＋ 로 추가해 주세요!</div>`));
     return;
   }
-  const enriched = Store.data.tasks.map(t => ({ t, s: statusOf(t) })).sort((a,b) => a.s.sort - b.s.sort);
-  const attention = enriched.filter(e => ['over','soon','todo'].includes(e.s.cls));
-  const later = enriched.filter(e => !['over','soon','todo'].includes(e.s.cls));
 
   if (attention.length) {
     root.appendChild(el(`<div class="sec-title">🔔 집사가 챙기는 일 (${attention.length})</div>`));

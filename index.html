@@ -36,6 +36,11 @@
   .dot { width:9px;height:9px;border-radius:50%;flex:0 0 auto; }
   .ds .none { color:var(--muted); font-size:13px; }
   .allgood { text-align:center; padding:8px; color:var(--ok); font-weight:700; }
+  .gauge { margin:6px 0 14px; }
+  .gauge-top { display:flex; justify-content:space-between; font-size:13.5px; font-weight:800; color:var(--muted); margin-bottom:5px; }
+  .gauge-track { background:#eee6fb; border-radius:999px; height:15px; overflow:hidden; }
+  .gauge-fill { height:100%; border-radius:999px; transition:width .5s ease; }
+  .gauge-msg { text-align:center; font-size:12.5px; font-weight:800; margin-top:6px; }
 
   .cards { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
   a.card { text-decoration:none; color:inherit; background:#fff; border:1px solid #e7e4f0; border-radius:16px; padding:16px;
@@ -175,7 +180,11 @@
     const pill=(txt,over)=>`<span class="pill ${over?'pill-over':'pill-soon'}">${txt}</span>`;
     const totalAlerts=chores.length+events.length+expSoon.length+vdues.length;
     let html=`<h2>오늘의 우리집 🏠</h2><div class="day">${t.getFullYear()}년 ${t.getMonth()+1}월 ${t.getDate()}일 (${WD[wd]})</div>`;
-    if(totalAlerts===0 && !shopTodo.length) html+=`<div class="allgood">😻 오늘은 다 평화로워요!</div>`;
+    const pending=chores.length+expSoon.length+vdues.length;
+    const score=pending===0?100:Math.max(30,100-pending*10);
+    const gc=score>=90?'#1f9d57':(score>=60?'#e8920c':'#e0483b');
+    const gm=score>=100?'완벽해요! 😻 우리집 컨디션 최고':(score>=80?'거의 완벽! 조금만 더 😺':(score>=50?'몇 가지 챙기면 좋아요 🐾':'할 일이 좀 쌓였어요 🙀'));
+    html+=`<div class="gauge"><div class="gauge-top"><span>🏠 우리집 컨디션</span><span style="color:${gc}">${score}%</span></div><div class="gauge-track"><div class="gauge-fill" style="width:${score}%;background:${gc}"></div></div><div class="gauge-msg" style="color:${gc}">${gm}</div></div>`;
     html+=sec('📅','오늘 일정','schedule.html',events,e=>`<div class="ds-item">${e.time?`<b>${e.time}</b>`:'<span class="dot" style="background:#7c5cff"></span>'} ${escape2(e.title)}</div>`,'오늘 일정 없음');
     html+=sec('🧹','챙길 집안일','butler.html',chores,c=>`<div class="ds-item">${escape2(c.name)}${pill(c.label,c.over)}</div>`,'오늘 할 집안일 없음 👍');
     html+=sec('🛒','장보기','shopping.html',shopTodo,i=>`<div class="ds-item">${escape2(i.name)}</div>`,'살 것 없음');
