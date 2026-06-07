@@ -51,6 +51,9 @@
 
   .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 15px; margin-bottom: 12px; box-shadow: var(--shadow); }
   .stat-card h3 { margin: 0 0 12px; font-size: 14.5px; }
+  .wg-top { display:flex; justify-content:space-between; font-size:13px; font-weight:800; margin-bottom:4px; }
+  .wg-track { background:var(--bg); border-radius:999px; height:13px; overflow:hidden; }
+  .wg-fill { height:100%; border-radius:999px; transition:width .5s ease; }
   .kv { display:flex; gap:10px; flex-wrap:wrap; }
   .kv .box { flex:1; min-width:120px; background:var(--bg); border-radius:12px; padding:12px; text-align:center; }
   .kv .box .n { font-size:24px; font-weight:800; color:var(--primary); }
@@ -334,6 +337,8 @@ function renderSummary() {
       <div class="box"><div class="n" style="font-size:18px">${comma(chgCostYr+svcCostYr)}</div><div class="l">${yr}년 총 차량비용(원)</div></div>
     </div></div>`));
 
+  root.appendChild(warrantyCard(id));
+
   const dues = reminderStatuses(id).filter(r=>['over','soon'].includes(r.s.cls));
   const dcard = el(`<div class="stat-card"><h3>📅 곧 챙길 것</h3></div>`);
   if (!dues.length) dcard.appendChild(el(`<div class="muted" style="font-size:13.5px">임박한 만기/정비가 없어요 😺</div>`));
@@ -341,6 +346,93 @@ function renderSummary() {
       <div class="top"><span class="nm">${esc(r.name)}</span><span class="spacer"></span><span class="status-pill ${s.pill}">${esc(s.label)}</span></div></div>`)));
   root.appendChild(dcard);
   root.appendChild(el(`<div class="muted" style="font-size:12.5px;text-align:center;margin-top:10px">🔌 충전 ${carCharge(id).length}건 · 🔧 정비 ${carService(id).length}건</div>`));
+}
+
+/* ===================== 보증 (게이지) ===================== */
+function warrantyStatus(w, carId){
+  const odo=latestOdo(carId); const t=todayDate(); const exp=parseDate(w.expiry);
+  const daysLeft = exp ? Math.round((exp-t)/86400000) : null;
+  let timePct=null;
+  if(exp && w.start){ const st=parseDate(w.start); if(st){ const span=exp-st; if(span>0) timePct=Math.max(0,Math.min(100,(exp-t)/span*100)); } }
+  let kmPct=null, kmLeft=null;
+  if(w.limitKm){ kmLeft=w.limitKm-odo; kmPct=Math.max(0,Math.min(100,kmLeft/w.limitKm*100)); }
+  const pcts=[timePct,kmPct].filter(p=>p!=null);
+  const remPct = pcts.length? Math.min(...pcts) : 100;
+  const expired = (daysLeft!=null && daysLeft<0) || (kmLeft!=null && kmLeft<=0);
+  return { odo, daysLeft, kmLeft, remPct, expired };
+}
+function warrantyCard(id){
+  const car=curCar(); const ws=(car&&car.warranties)||[];
+  const card=el(`<div class="stat-card"></div>`);
+  const h=el(`<h3 style="display:flex;align-items:center">🛡️ 보증<span style="flex:1"></span></h3>`);
+  const eb=el(`<button class="btn sm" style="padding:4px 10px">✏️ 관리</button>`);
+  eb.addEventListener('click', openWarrantyEditor); h.appendChild(eb); card.appendChild(h);
+  if(!ws.length){ card.appendChild(el(`<div class="muted" style="font-size:13px">등록된 보증이 없어요. <b>✏️ 관리</b>에서 추가하세요.<br>(🚗 테슬라 자동생성 가능)</div>`)); return card; }
+  ws.forEach(w=>{
+    const s=warrantyStatus(w,id);
+    const color=s.expired?'#9aa0ab':(s.remPct>40?'#1f9d57':(s.remPct>15?'#e8920c':'#e0483b'));
+    const dd = s.daysLeft==null?'':(s.daysLeft<0?`${comma(-s.daysLeft)}일 지남`:`D-${comma(s.daysLeft)}`);
+    const km = w.limitKm?`🛣️ ${comma(s.odo)}/${comma(w.limitKm)}km${s.kmLeft>0?` (${comma(s.kmLeft)}km 남음)`:''}`:'';
+    card.appendChild(el(`<div style="margin-top:13px">
+      <div class="wg-top"><span>${esc(w.name)}</span><span style="color:${color}">${s.expired?'만료':Math.round(s.remPct)+'%'}</span></div>
+      <div class="wg-track"><div class="wg-fill" style="width:${s.expired?100:s.remPct}%;background:${color}"></div></div>
+      <div class="muted" style="font-size:11.5px;margin-top:4px">📅 ${esc(w.expiry||'-')}${dd?` (${dd})`:''}${km?` · ${km}`:''}${w.serial?`<br>🔋 S/N ${esc(w.serial)}`:''}</div>
+    </div>`));
+  });
+  return card;
+}
+function openWarrantyEditor(){
+  const car=curCar(); if(!car){ toast('먼저 차량을 등록하세요'); return; }
+  const ws=car.warranties||[];
+  const list=ws.map(w=>`<div class="list-card click" data-wid="${w.id}"><div class="top"><span class="nm">${esc(w.name)}</span><span class="spacer"></span><span class="muted">✏️</span></div><div class="sub" style="font-size:12px;color:var(--muted);margin-top:2px">만료 ${esc(w.expiry||'-')}${w.limitKm?` · ${comma(w.limitKm)}km`:''}</div></div>`).join('');
+  const m=el(`<div class="modal-bg"><div class="modal">
+    <h2>🛡️ 보증 관리 — ${esc(car.name)}</h2>
+    <div id="wlist">${ws.length?list:'<div class="muted" style="font-size:13px;margin-bottom:8px">등록된 보증이 없어요.</div>'}</div>
+    <button class="btn" style="width:100%;margin-bottom:8px" onclick="teslaPreset()">🚗 테슬라 모델Y 보증 자동생성 (인도일만 입력)</button>
+    <div class="actions"><button class="btn" onclick="closeModal()">닫기</button><button class="btn primary" onclick="openWarrantyModal()">＋ 직접 추가</button></div>
+  </div></div>`);
+  showModal(m);
+  $all('#wlist .list-card', m).forEach(c=>c.addEventListener('click',()=>openWarrantyModal(c.dataset.wid)));
+}
+function openWarrantyModal(wid){
+  const car=curCar(); const ws=car.warranties||[]; const ed=wid?ws.find(w=>w.id===wid):null;
+  const w=ed||{name:'',start:'',expiry:'',limitKm:'',serial:''};
+  const m=el(`<div class="modal-bg"><div class="modal">
+    <h2>${ed?'🛡️ 보증 수정':'🛡️ 보증 추가'}</h2>
+    <div class="field"><label>보증 이름 *</label><input id="w_name" value="${esc(w.name)}" placeholder="예: 기본 차량 제한보증" /></div>
+    <div class="field-row">
+      <div class="field"><label>시작일(인도일)</label><input id="w_start" type="date" value="${esc(w.start)}" /></div>
+      <div class="field"><label>만료일</label><input id="w_expiry" type="date" value="${esc(w.expiry)}" /></div>
+    </div>
+    <div class="field"><label>주행거리 한도(km)</label><input id="w_km" type="number" inputmode="numeric" value="${esc(w.limitKm)}" placeholder="예: 80000" /></div>
+    <div class="field"><label>일련번호 (선택)</label><input id="w_serial" value="${esc(w.serial)}" placeholder="예: 배터리 S/N" /></div>
+    <div class="actions">${ed?`<button class="btn danger" onclick="delWarranty('${wid}')">🗑️</button>`:''}
+      <button class="btn" onclick="openWarrantyEditor()">뒤로</button>
+      <button class="btn primary" onclick="saveWarranty('${wid||''}')">💾 저장</button></div>
+  </div></div>`);
+  showModal(m);
+}
+function saveWarranty(wid){
+  const car=curCar(); car.warranties=car.warranties||[];
+  const name=$('#w_name').value.trim(); if(!name){toast('이름을 입력해주세요');return;}
+  const fields={ name, start:$('#w_start').value, expiry:$('#w_expiry').value, limitKm:Number($('#w_km').value)||0, serial:$('#w_serial').value.trim() };
+  if(wid) Object.assign(car.warranties.find(w=>w.id===wid),fields);
+  else car.warranties.push({ id:'w'+Math.random().toString(36).slice(2,9), ...fields });
+  Store.save(); toast('💾 저장!'); openWarrantyEditor(); render();
+}
+function delWarranty(wid){ const car=curCar(); car.warranties=(car.warranties||[]).filter(w=>w.id!==wid); Store.save(); openWarrantyEditor(); render(); }
+function teslaPreset(){
+  const car=curCar(); if(!car) return;
+  const d=prompt('차량 인도일을 입력하세요 (예: 2022-09-13)\n이 날짜 기준으로 기본 4년 / 배터리·구동 8년 만료일을 자동 계산해요','2022-09-13');
+  if(!d) return; const sd=parseDate(d.trim()); if(!sd){ toast('날짜 형식: 2022-09-13'); return; }
+  const start=toISO(sd); const addY=(y)=>{ const x=new Date(sd); x.setFullYear(x.getFullYear()+y); return toISO(x); };
+  car.warranties=car.warranties||[];
+  car.warranties.push(
+    { id:'w'+Math.random().toString(36).slice(2,9), name:'기본 차량 제한보증', start, expiry:addY(4), limitKm:80000, serial:'' },
+    { id:'w'+Math.random().toString(36).slice(2,9), name:'배터리 제한보증', start, expiry:addY(8), limitKm:192000, serial:'' },
+    { id:'w'+Math.random().toString(36).slice(2,9), name:'구동장치 제한보증', start, expiry:addY(8), limitKm:192000, serial:'' }
+  );
+  Store.save(); toast('🚗 테슬라 보증 3종 생성!'); openWarrantyEditor(); render();
 }
 
 /* ===================== 충전 ===================== */
