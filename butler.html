@@ -594,13 +594,23 @@ function renderHistory() {
   const list = Store.data.history.filter(h => !histFilter || h.taskName === histFilter);
   if (list.length === 0) { root.appendChild(el(`<div class="empty">📒 아직 완료 기록이 없어요</div>`)); return; }
   for (const h of list) {
-    root.appendChild(el(`<div class="list-card">
+    const card = el(`<div class="list-card">
       <div class="top"><span class="nm">${esc(h.taskName)}</span>
         ${h.person?`<span class="chip-cat">${esc(h.person)}</span>`:''}<span class="spacer"></span>
         <span class="status-pill pill-ok">✅</span></div>
       <div class="sub">🐾 ${fmtKDate(h.doneDate)} 시행${h.memo?` · 📝 ${esc(h.memo)}`:''}</div>
-    </div>`));
+    </div>`);
+    const delBtn = el(`<button class="btn sm danger" style="margin-top:8px">🗑️ 이 기록 삭제</button>`);
+    delBtn.addEventListener('click', () => deleteHistory(h.id));
+    card.appendChild(delBtn);
+    root.appendChild(card);
   }
+}
+function deleteHistory(id) {
+  if (!confirm('이 완료 기록을 삭제할까요? (집안일 작업 자체는 그대로 남아요)')) return;
+  Store.data.history = Store.data.history.filter(h => h.id !== id);
+  Store.save();
+  renderHistory();
 }
 
 /* ===================== 설정 ===================== */
