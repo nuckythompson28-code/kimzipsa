@@ -246,33 +246,35 @@
         → 톱으로 잘라 <b>여러 개를 연속</b>으로 뽑아냅니다.
       </div>
 
-      <!-- 1. 단면 비교 -->
       <div class="svgbox">
-        <h3>① 단면 비교 — 원자재 vs 완성품 (정면에서 본 모습)</h3>
-        <div class="cap">바깥지름은 줄고(<span style="color:var(--accent2)">#109→#111</span>), 구멍은 넓어집니다(<span style="color:var(--accent2)">#110→#112</span>). 회색 띠가 깎여나가는 살입니다.</div>
-        <svg viewBox="0 0 600 300">
-          <!-- 원자재 -->
-          <text class="lbl" x="140" y="32" text-anchor="middle" style="font-weight:700">원자재 (소재)</text>
-          <circle cx="140" cy="155" r="95" class="raw"/>
-          <circle cx="140" cy="155" r="68" fill="#0f1216" stroke="var(--accent2)" stroke-width="2"/>
-          <!-- 외경 화살표 -->
-          <line x1="45" y1="155" x2="235" y2="155" class="dimt"/>
-          <text class="var" x="140" y="135" text-anchor="middle" data-v="109">#109 외경</text>
-          <text class="var" x="140" y="172" text-anchor="middle" data-v="110">#110 내경</text>
-
-          <!-- 화살표 -->
-          <text class="lbl" x="300" y="160" text-anchor="middle" style="font-size:30px;fill:var(--accent)">➜</text>
-          <text class="lbls" x="300" y="185" text-anchor="middle">가공</text>
-
-          <!-- 완성품 -->
-          <text class="lbl" x="460" y="32" text-anchor="middle" style="font-weight:700">완성품 (제품)</text>
-          <!-- 깎여나간 영역(원자재 윤곽 점선) -->
-          <circle cx="460" cy="155" r="95" fill="none" stroke="#5a6675" stroke-width="1" stroke-dasharray="4 4"/>
-          <circle cx="460" cy="155" r="68" fill="none" stroke="#5a6675" stroke-width="1" stroke-dasharray="4 4"/>
-          <circle cx="460" cy="155" r="85" class="part"/>
-          <circle cx="460" cy="155" r="78" fill="#0f1216" stroke="var(--accent)" stroke-width="2"/>
-          <text class="var" x="460" y="138" text-anchor="middle" data-v="111">#111 완성외경</text>
-          <text class="var" x="460" y="178" text-anchor="middle" data-v="112">#112 완성내경</text>
+        <h3>① 단면 비교 — 절삭으로 제거되는 살 (내·외경 동시)</h3>
+        <div class="cap"><b>내외경 바이트</b>라 바깥(OD)뿐 아니라 <b>구멍(ID)도 함께 절삭</b>됩니다. 붉은 띠 두 곳이 깎여나가는 부분 — 개념도라 두께는 과장돼 있습니다.</div>
+        <svg viewBox="0 0 600 330">
+          <circle cx="230" cy="165" r="130" fill="#5a2d2d"/>
+          <circle cx="230" cy="165" r="110" class="part"/>
+          <circle cx="230" cy="165" r="86" fill="#5a2d2d"/>
+          <circle cx="230" cy="165" r="66" fill="#0f1216" stroke="#3a6a8a" stroke-width="1"/>
+          <circle cx="230" cy="165" r="130" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <circle cx="230" cy="165" r="66" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <line x1="230" y1="165" x2="230" y2="22" class="dimt"/>
+          <line x1="224" y1="35" x2="236" y2="35" class="dim"/>
+          <line x1="224" y1="55" x2="236" y2="55" class="dim"/>
+          <line x1="224" y1="79" x2="236" y2="79" class="dim"/>
+          <line x1="224" y1="99" x2="236" y2="99" class="dim"/>
+          <text class="var" x="220" y="39" text-anchor="end" data-v="109">#109 원자재 외경</text>
+          <text class="var" x="220" y="59" text-anchor="end" data-v="111">#111 완성 외경</text>
+          <text class="var" x="220" y="83" text-anchor="end" data-v="112">#112 완성 내경</text>
+          <text class="var" x="220" y="103" text-anchor="end" data-v="110">#110 원자재 내경</text>
+          <rect x="400" y="68" width="16" height="16" fill="#5a2d2d"/>
+          <text class="lbl" x="424" y="81">외경 절삭부 (#109→#111)</text>
+          <line x1="350" y1="165" x2="398" y2="76" class="lead"/>
+          <rect x="400" y="110" width="16" height="16" class="part"/>
+          <text class="lbl" x="424" y="123">제품 (완성 단면)</text>
+          <line x1="328" y1="165" x2="398" y2="118" class="lead"/>
+          <rect x="400" y="152" width="16" height="16" fill="#5a2d2d"/>
+          <text class="lbl" x="424" y="165">내경 절삭부 (#110→#112)</text>
+          <text class="lbls" x="424" y="183" style="fill:var(--accent2)">← 내외경 바이트로 함께 깎임</text>
+          <line x1="306" y1="172" x2="398" y2="160" class="lead"/>
         </svg>
       </div>
 
