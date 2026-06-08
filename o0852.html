@@ -95,7 +95,7 @@
   .label{color:var(--green); font-weight:700}
   .ln.flash{background:#3a3a1d!important; transition:background .1s}
   /* tooltip */
-  #tip{position:fixed; z-index:999; max-width:340px; background:#0a0d11; border:1px solid var(--accent);
+  #tip{position:fixed; z-index:999; max-width:min(340px, calc(100vw - 24px)); background:#0a0d11; border:1px solid var(--accent);
     border-radius:10px; padding:11px 14px; font-size:13px; line-height:1.5; color:var(--txt);
     box-shadow:0 8px 30px rgba(0,0,0,.6); pointer-events:none; opacity:0; transition:opacity .1s; display:none}
   #tip.show{opacity:1; display:block}
@@ -1393,10 +1393,13 @@ const main=document.getElementById('main');
 
 function showTip(html,x,y){
  tip.innerHTML=html; tip.classList.add('show');
+ const r=tip.getBoundingClientRect(), m=10;
  let tx=x+14, ty=y+16;
- const r=tip.getBoundingClientRect();
- if(tx+r.width>innerWidth-10) tx=x-r.width-14;
- if(ty+r.height>innerHeight-10) ty=y-r.height-16;
+ if(tx+r.width>innerWidth-m) tx=x-r.width-14;
+ if(ty+r.height>innerHeight-m) ty=y-r.height-16;
+ // 화면 밖으로 안 나가게 양쪽 클램프 (모바일 좌측 잘림 방지)
+ tx=Math.max(m, Math.min(tx, innerWidth-r.width-m));
+ ty=Math.max(m, Math.min(ty, innerHeight-r.height-m));
  tip.style.left=tx+'px'; tip.style.top=ty+'px';
 }
 function hideTip(){tip.classList.remove('show');}

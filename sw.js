@@ -1,5 +1,5 @@
 // 김집사 서비스워커 — 앱 셸 캐시(오프라인) + 백그라운드 갱신
-const CACHE = 'kimzipsa-v7';
+const CACHE = 'kimzipsa-v8';
 const ASSETS = [
   './', 'index.html', 'butler.html', 'storage.html', 'vehicle.html',
   'schedule.html', 'shopping.html', 'fines.html', 'info.html', 'recipe.html',
